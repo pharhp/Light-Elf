@@ -42,17 +42,23 @@ class LightingElf(wx.Frame):
         self.SetLabel("Lighting elf")
         self.SetIcon(ico)
 
-        # Menu Bar
+        ## Menu Bar
         self.menuBar = wx.MenuBar()
+
+        #file Menu setup
         fileMenu = wx.Menu()
         fileMenu.Append(101,"&Export Sequence","Export currently processed sequences.")
         fileMenu.AppendSeparator()
         fileMenu.Append(103,"E&xit", "Say good bye to the elf")
         self.menuBar.Append(fileMenu, "&File")
+
+        #Sequences Menu setup
         seqMenu = wx.Menu()
         seqMenu.Append(201,"&Add Sequences", "Select LSP Sequences to convert")
         seqMenu.Append(202, "&Clear Sequences", "Delete current Sequences")
         self.menuBar.Append(seqMenu,"&Sequences")
+
+        #Options menu setup
         optionsMenu = wx.Menu()
         optionsMenu.Append(301,"Individual Sequence",
                            "Proces each sequence as an individual sequence.",
@@ -64,11 +70,29 @@ class LightingElf(wx.Frame):
         optionsMenu.Append(303,"Settings", "Set directories used by the elf",
                            wx.ITEM_NORMAL)
         self.menuBar.Append(optionsMenu,"&Options")
+
+        #Help Menu Setup
         helpMenu = wx.Menu()
         helpMenu.Append(401, "About", "", wx.ITEM_NORMAL)
         self.menuBar.Append(helpMenu, "&Help")
         self.SetMenuBar(self.menuBar)
-        # Menu Bar end
+        ## Menu Bar end
+
+        ## Menu event connections
+        self.Bind(wx.EVT_MENU, self.exportSequence, id=101)
+        self.Bind(wx.EVT_MENU, self.CloseWindow, id=103)
+
+        self.Bind(wx.EVT_MENU, self.addSequences, id=201)
+        self.Bind(wx.EVT_MENU, self.clearSequences, id=202)
+
+        self.Bind(wx.EVT_MENU, self.seqOptionIndividual, id=301)
+        self.Bind(wx.EVT_MENU, self.seqOptionCombine, id=302)
+        self.Bind(wx.EVT_MENU, self.updateSettings, id=303)
+
+        self.Bind(wx.EVT_MENU, self.aboutElf, id=401)
+        ## Menu event connections end
+
+
         self.frame_1_statusbar = self.CreateStatusBar(1, 0)
         self.sequencesPanel = scrolled.ScrolledPanel(self, -1,
                               style=wx.DOUBLE_BORDER | wx.TAB_TRAVERSAL)
@@ -114,7 +138,6 @@ class LightingElf(wx.Frame):
         self.__set_properties()
         self.__do_layout()
 
-        self.Bind(wx.EVT_BUTTON, self.OnAddFile, self.bAddFiles)
         # end wxGlade
 
     def update(self, timers):
@@ -217,7 +240,7 @@ class LightingElf(wx.Frame):
         self.Layout()
         # end wxGlade
 
-    def OnAddFile(self, event):  # wxGlade: LightingElf.<event_handler>
+    def addSequences(self, event):  # wxGlade: LightingElf.<event_handler>
         """
         Create and show the Open FileDialog
         """
@@ -264,6 +287,35 @@ class LightingElf(wx.Frame):
 
         self.Refresh()
         self.Layout()
+
+    def exportSequence(self, event):
+        pass
+
+    def CloseWindow(self, event):
+        self.Close()
+
+    def clearSequences(self, event):
+        dial = wx.MessageDialog(None, 'If you have not exported the converted sequences the in memory conversion will be deleted',
+         'Confirm clear', wx.OK | wx.ICON_EXCLAMATION | wx.CANCEL)
+        dial.ShowModal()
+        dial.Destroy()
+
+    def seqOptionIndividual(self, event):
+        self.individualSeq = True
+
+
+    def seqOptionCombine(self, event):
+        self.individualSeq = False
+
+
+    def updateSettings(self, event):
+        pass
+
+    def aboutElf(self, event):
+        dlg = AboutBox()
+        dlg.ShowModal()
+        dlg.Destroy()
+
 
 def seqWorker(**kwargs):
     procInfo = kwargs
