@@ -54,7 +54,8 @@ class LightingElf(wx.Frame):
 
         #Sequences Menu setup
         seqMenu = wx.Menu()
-        seqMenu.Append(201,"&Add Sequences", "Select LSP Sequences to convert")
+        self.miAddSeq = seqMenu.Append(201,"&Add Sequences",
+                                       "Select LSP Sequences to convert")
         seqMenu.Append(202, "&Clear Sequences", "Delete current Sequences")
         self.menuBar.Append(seqMenu,"&Sequences")
 
@@ -95,7 +96,7 @@ class LightingElf(wx.Frame):
 
         self.frame_1_statusbar = self.CreateStatusBar(1, 0)
         self.sequencesPanel = scrolled.ScrolledPanel(self, -1,
-                              style=wx.DOUBLE_BORDER | wx.TAB_TRAVERSAL)
+                              style=wx.DOUBLE_BORDER | wx.TAB_TRAVERSAL, size=(800,200))
         self.lbSequenceName = wx.StaticText(self.sequencesPanel, -1,
                             "Sequence Name                                                                          ",
                             style = wx.RAISED_BORDER | wx.ALL |
@@ -113,18 +114,7 @@ class LightingElf(wx.Frame):
         self.lbComplete = wx.StaticText(self.sequencesPanel, -1, "Complete",
                         style = wx.RAISED_BORDER,
                         size=(100,20))
-        self.bAddFiles = wx.Button(self, -1, "Add Files")
-        self.rbCombineFiles = wx.RadioButton(self, -1, "Combine Files")
-        self.rbIndSeq = wx.RadioButton(self, -1, "Individual Sequence", style=wx.RB_GROUP)
-        self.tcAudioFile = wx.TextCtrl(self, -1, "Multi Sequence Audio File", style=wx.TE_READONLY)
-        self.bAddAudioFile = wx.Button(self, -1, "Add Audio File")
-        self.label_9 = wx.StaticText(self, -1, "Output File Format")
-##        self.label_8 = wx.StaticText(self, -1, "Available CPU Cores")
-##        self.tcCores = wx.TextCtrl(self, -1, "", style=wx.TE_READONLY)
-        self.rbXseqFile = wx.RadioButton(self, -1, "xLights xseq file", style=wx.RB_GROUP)
-##        self.label_8_copy = wx.StaticText(self, -1, "Max Threads")
-##        self.tcMaxThreads = wx.TextCtrl(self, -1, "", style=wx.TE_READONLY)
-        self.rbConductorFile = wx.RadioButton(self, -1, "DLA Conductor file")
+
 
         self.timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.update, self.timer)
@@ -196,49 +186,23 @@ class LightingElf(wx.Frame):
         for i in range(len(frame_1_statusbar_fields)):
             self.frame_1_statusbar.SetStatusText(frame_1_statusbar_fields[i], i)
         self.sequencesPanel.SetScrollRate(10, 10)
-        self.tcAudioFile.SetMinSize((500, -1))
-        self.tcAudioFile.Enable(False)
-##        self.tcCores.Enable(False)
-##        self.tcMaxThreads.Enable(False)
-        self.bAddAudioFile.Enable(False)
-        self.label_9.SetMinSize((200,29))
-        # end wxGlade
 
 
     def __do_layout(self):
-        # begin wxGlade: LightingElf.__do_layout
-        sizer_10 = wx.BoxSizer(wx.VERTICAL)
-        sizer_11 = wx.BoxSizer(wx.VERTICAL)
-        grid_sizer_2 = wx.FlexGridSizer(3, 3, 1, 1)
-        sizer_12 = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_14 = wx.BoxSizer(wx.VERTICAL)
+        sizerH = wx.BoxSizer(wx.VERTICAL)
         grid_sizer_1 = wx.FlexGridSizer(1, 4, 1, 1)
         grid_sizer_1.Add(self.lbSequenceName, 0, wx.ALL, 3)
         grid_sizer_1.Add(self.lbSequenceStatusText, 0, wx.ALL, 3)
         grid_sizer_1.Add(self.lbStatusGauge, 0, wx.ALL, 3)
         grid_sizer_1.Add(self.lbComplete, 0, wx.ALL, 3)
         self.sequencesPanel.SetSizer(grid_sizer_1)
-        sizer_12.Add(self.sequencesPanel, 1, wx.EXPAND, 0)
-        sizer_14.Add(self.bAddFiles, 0, wx.LEFT, 10)
-        sizer_14.Add(self.rbCombineFiles, 0, wx.LEFT | wx.TOP, 10)
-        sizer_14.Add(self.rbIndSeq, 0, wx.LEFT | wx.TOP, 10)
-        sizer_12.Add(sizer_14, 0, wx.EXPAND, 0)
-        sizer_11.Add(sizer_12, 1, wx.EXPAND, 0)
-        grid_sizer_2.Add(self.tcAudioFile, 0, wx.ALL | wx.EXPAND, 3)
-        grid_sizer_2.Add(self.bAddAudioFile, 0, wx.ALL, 3)
-        grid_sizer_2.Add(self.label_9, 0, wx.ALL | wx.EXPAND, 3)
-##        grid_sizer_2.Add(self.label_8, 0, wx.ALL, 3)
-##        grid_sizer_2.Add(self.tcCores, 0, wx.ALL, 3)
-        grid_sizer_2.Add(self.rbXseqFile, 0, wx.ALL, 3)
-##        grid_sizer_2.Add(self.label_8_copy, 0, wx.ALL, 3)
-##        grid_sizer_2.Add(self.tcMaxThreads, 0, wx.ALL, 3)
-        grid_sizer_2.Add(self.rbConductorFile, 0, wx.ALL, 3)
-        sizer_11.Add(grid_sizer_2, 1, wx.EXPAND, 0)
-        sizer_10.Add(sizer_11, 1, wx.EXPAND, 0)
-        self.SetSizer(sizer_10)
-        sizer_10.Fit(self)
+        self.sequencesPanel.SetAutoLayout(1)
+        self.sequencesPanel.SetupScrolling()
+        sizerH.Add(self.sequencesPanel,1, wx.EXPAND, 0)
+        self.SetSizer(sizerH)
+        sizerH.Fit(self)
         self.Layout()
-        # end wxGlade
+
 
     def addSequences(self, event):  # wxGlade: LightingElf.<event_handler>
         """
@@ -257,8 +221,7 @@ class LightingElf(wx.Frame):
             paths = dlg.GetPaths()
 
             for path in paths:
-                grid = self.sequencesPanel.GetSizer()
-                grid.SetRows(grid.GetRows())
+                grid.SetRows(grid.GetRows()+1)
                 self.sequences.append({})
                 tempDict = self.sequences[-1]
                 tempDict[self.PROC_INFO] = {}
@@ -278,10 +241,10 @@ class LightingElf(wx.Frame):
                 print path
             self.numSequences = len(paths)
             self.timer.Start(500)
-            self.bAddFiles.Disable()
+            self.miAddSeq.Enable(False)
 
         dlg.Destroy()
-        self.sequencesPanel.SetSizer(self.sequencesPanel.GetSizer())
+        self.sequencesPanel.SetSizer(grid)
         self.sequencesPanel.SetAutoLayout(1)
         self.sequencesPanel.SetupScrolling()
 
@@ -359,7 +322,7 @@ if __name__ == "__main__":
     app = wx.PySimpleApp(0)
 
     wx.InitAllImageHandlers()
-    frame_1 = LightingElf(None, -1, "Lighting Elf")
+    frame_1 = LightingElf(None, -1, title="Lighting Elf", size=(800,300))
     app.SetTopWindow(frame_1)
 ##    frame_1.tcCores.AppendText(str(cpu_count()))
     frame_1.Show()
