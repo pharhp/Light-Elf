@@ -19,6 +19,7 @@ class LightingElf(wx.Frame):
     SEQUENCE_STATUS = 'SS'
     SEQUENCE_PROGRESS = 'SP'
     SEQUENCE_COMPLETE = 'SC'
+    SEQUENCE_OBJ = 'SO'
     PROC_STATUS = 'PS'
     PROCESS = 'PRO'
     PROC_INQ = 'PIQ'
@@ -36,7 +37,7 @@ class LightingElf(wx.Frame):
         wx.Frame.__init__(self, *args, **kwds)
         self.maxProc = cpu_count() * 2
         self.activeProc = 0
-
+        self.execPath = os.path.dirname(os.path.realpath(__file__))
 
         ico = wx.Icon('tree.ico',wx.BITMAP_TYPE_ICO)
         self.SetLabel("Lighting elf")
@@ -142,15 +143,19 @@ class LightingElf(wx.Frame):
                         continue
                     if stat == 'Done':
                         result = temp[self.PROC_OUTQ].get()
-                        while not isinstance(result, Sequence):
+                        while not result != None and isinstance(result, Sequence):
                               try:
                                   result = temp[self.PROC_OUTQ].get()
                               except:
                                   seq[self.SEQUENCE_STATUS].ChangeValue('Error No Seq')
                                   return
+                        assert(isinstance(result,Sequence))
                         self.activeProc -= 1
+                        seq[self.SEQUENCE_OBJ] = result
+                        seq[self.SEQUENCE_STATUS].ChangeValue(stat)
                     elif stat == "Error":
                          seq[self.SEQUENCE_STATUS].ChangeValue(stat)
+                         self.activeProc -= 1
                     elif re.match(r'Proc',stat,re.I) != None :
                         try:
                             cur = temp[self.PROC_OUTQ].get()
@@ -232,13 +237,13 @@ class LightingElf(wx.Frame):
                 tempDict[self.SEQUENCE_STATUS] = wx.TextCtrl(self.sequencesPanel, -1, "waiting")
                 tempDict[self.SEQUENCE_PROGRESS] = wx.Gauge(self.sequencesPanel, -1, 100)
                 tempDict[self.SEQUENCE_COMPLETE] = wx.StaticBitmap(self.sequencesPanel, -1,
-                              wx.Bitmap("notchecked.ico", wx.BITMAP_TYPE_ANY))
+                              wx.Bitmap(self.execPath + "\\notchecked.ico", wx.BITMAP_TYPE_ANY))
                 grid.Add(tempDict[self.SEQUENCE_NAME], 0, wx.ALL | wx.EXPAND, 3)
                 grid.Add(tempDict[self.SEQUENCE_STATUS], 0, wx.ALL, 3)
                 grid.Add(tempDict[self.SEQUENCE_PROGRESS], 0, wx.ALL, 3)
                 grid.Add(tempDict[self.SEQUENCE_COMPLETE], 0, 0, 0)
 
-                print path
+##                print path
             self.numSequences = len(paths)
             self.timer.Start(500)
             self.miAddSeq.Enable(False)
@@ -252,15 +257,97 @@ class LightingElf(wx.Frame):
         self.Layout()
 
     def exportSequence(self, event):
+        if self.activeProc != 0:
+            dial = wx.MessageDialog(None, 'Sequences still being processed.',
+                'Not Ready', wx.OK | wx.ICON_ERROR )
+            status = dial.ShowModal()
+            dial.Destroy()
+        elif self.individualSeq == True:
+            #Export each sequence individually
+            #NOT YET
+            for seq in self.sequences:
+                seq[self.SEQUENCE_OBJ].outputxLights()
+
+        else:
+            #Export single combines sequence. get Audio file first
+            if not self.getAudioFileFromUser():
+                dial = wx.MessageDialog(None, 'No Audio File Selected',
+                'Error', wx.OK | wx.ICON_ERROR )
+                status = dial.ShowModal()
+                dial.Destroy()
+            else:
+                #have an audio file get export name
+                dlg = wx.FileDialog(
+                    self, message="Exported Filename", defaultFile="",
+                    defaultDir="C:\\xlights", wildcard='*.xseq',
+                    style=wx.SAVE | wx.CHANGE_DIR)
+                if dlg.ShowModal() == wx.ID_OK:
+                    exportFile = dlg.GetPath()
+                    dlg.Destroy()
+                else:
+                    dial = wx.MessageDialog(None, 'No export file selected',
+                     'Error', wx.OK | wx.ICON_ERROR )
+                    status = dial.ShowModal()
+                    dial.Destroy()
+                    dlg.Destroy()
+                    return
+                #get the total number of periods we are goign to export
+                numPeriods = 0
+                for seq in self.sequences:
+                    numPeriods += seq[self.SEQUENCE_OBJ].numPeriods
+                #Open file and output header
+                FH = open(exportFile, 'wb')
+                FH.write(b'xLights  1 %8d %8d'%self.netInfo.maxChan, numPeriods)
+                FH.write(b'\x00\x00\x00\x00')
+                FH.write(b'%s'%self.audioFile)
+                #Pad out to 512 bytes
+                FH.write(b'\x00'*(512 - int(len(self.songFile)) -32))
+                for chan in range(self.netInfo.maxChan):
+                    for seq in self.sequences:
+                        FH.write(seq[self.SEQUENCE_OBJ].getChannelEvents(chan))
+
+
+
+
         pass
+
+    def getAudioFileFromUser(self):
+        retVal = False
+        dlg = wx.FileDialog(
+            self, message="Select Sequence Audio File",
+            defaultFile="",
+            defaultDir="C:\\xlights",
+            wildcard='*.mp3,*.wav',
+            style=wx.OPEN | wx.CHANGE_DIR
+            )
+        if dlg.ShowModal() == wx.ID_OK:
+            audioPath = dlg.GetPath()
+            self.audioFile = audioPath
+            retVal = True
+        return retVal
+
 
     def CloseWindow(self, event):
         self.Close()
 
     def clearSequences(self, event):
-        dial = wx.MessageDialog(None, 'If you have not exported the converted sequences the in memory conversion will be deleted',
+        dial = wx.MessageDialog(None, 'Currently in memory sequences will be'+
+                                'erased. Are you sure you want to proceed?'+
+                                '(No files will be deleted)',
          'Confirm clear', wx.OK | wx.ICON_EXCLAMATION | wx.CANCEL)
-        dial.ShowModal()
+        status = dial.ShowModal()
+        if status == wx.OK:
+            seqgrid = self.sequencesPanel.GetSizer()
+            for seqGuiObjs in self.sequences:
+
+                seqgrid.Remove(tempDict[self.SEQUENCE_NAME])
+                seqgrid.Remove(tempDict[self.SEQUENCE_STATUS])
+                seqgrid.Remove(tempDict[self.SEQUENCE_PROGRESS])
+                seqgrid.Remove(tempDict[self.SEQUENCE_COMPLETE])
+            seqgrid.SetRows(1)
+            self.sequences = []
+        self.Refresh()
+        self.Layout()
         dial.Destroy()
 
     def seqOptionIndividual(self, event):

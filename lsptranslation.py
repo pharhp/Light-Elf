@@ -361,6 +361,12 @@ class Sequence():
                       twinklestate = random.randint(0,1)
                       nexttwinkle = random.randint(2,10)
 
+    def getChannelEvents(self, chanNum):
+        chanEvents = bytearray(self.numPeriods)
+        chanEvents = self.data[(chanNum-1)*self.numPeriods:
+                                (chanNum*self.numPeriods)]
+        return chanEvents
+
 
     def outputxLights(self,outfile):
         print("Generating xseq")
