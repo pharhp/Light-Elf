@@ -86,7 +86,7 @@ class Sequence():
     directory for the unzipped LSP sequence
     """
 
-    def __init__(self, seqdir,netInf, tempDir="C:\\xlights\\temp"):
+    def __init__(self, seqdir,netInf, tempDir="C:\\xlights\\temp", execDir = None):
 
         self.chanEffectCounts = {}
         self.effectCount = 0
@@ -94,6 +94,7 @@ class Sequence():
         self.seqdir = seqdir
         self.networks= netInf
         self.tempDir = tempDir
+        self.execDir = execDir
 
     def procSequence(self):
         #start with a root directory. assume that we have a Sequnce file and a dir
@@ -108,18 +109,29 @@ class Sequence():
 
     def extractSequence(self):
         print 'uno'
-        #if re.search(r'\.msq',self.seqdir, re.I) != None:
+        #if re.search(r'msq$',self.seqdir, re.I) != None:
             #not an MSQ file so assuem uncompressed already
         #    return 0
         print 'dos'
-        if os.path.exists('7za.exe') == False:
+        if self.execDir == None:
             return 1
+        cmd = self.execDir + "\\" + '7za.exe'
+
+        if os.path.exists(cmd) == False:
+            print cmd
+            return 1
+
         newDir = re.sub(r'\.msq$','',self.seqdir,flags=re.I)
 
-        print ["7za.exe", "x", '"', self.seqdir, '"', "-o\"%s\""%newDir]
-        retcode = subprocess.call(("7za.exe x  \"" + self.seqdir + "\" -o\"%s\""%newDir))
+        print [cmd, "x", '"', self.seqdir, '"', "-o\"%s\""%newDir]
+        retcode = subprocess.call((cmd +" x  \"" + self.seqdir + "\" -o\"%s\""%newDir))
         self.seqdir = newDir
         return retcode
+
+
+    def sendError(self):
+        if self.statQ != None:
+            self.statQ.put('Error')
 
     def convertLSPSequence(self):
         os.chdir('Controllers')
@@ -216,7 +228,7 @@ class Sequence():
         numInt = len(timeIntervals)
 
         for idx in range(numInt):
-            startPer = periodNum(int(timeIntervals[idx].get('pos')))
+            startPer = periodNum(int(float(timeIntervals[idx].get('pos'))))
 
             if startPer < 0:
                 #initial time period is always negative it seems. Log something here?
@@ -234,7 +246,7 @@ class Sequence():
                 # offs as well.
                 continue
 
-            endPer = periodNum(int(timeIntervals[idx+1].get('pos')))
+            endPer = periodNum(int(float(timeIntervals[idx+1].get('pos'))))
             startIntensity = \
                 normalizeIntensity(int(timeIntervals[idx].get('in')))
             endIntensity = \
@@ -299,7 +311,7 @@ class Sequence():
         useHSV = False
 
         for idx in range(numInt):
-            startPer = periodNum(int(timeIntervals[idx].get('pos')))
+            startPer = periodNum(int(float(timeIntervals[idx].get('pos'))))
 
             if startPer < 0:
                 #initial time period is always negative it seems. Log something here?
@@ -317,7 +329,7 @@ class Sequence():
                 # offs as well.
                 continue
 
-            endPer = periodNum(int(timeIntervals[idx+1].get('pos')))
+            endPer = periodNum(int(float(timeIntervals[idx+1].get('pos'))))
             colorStart = getColorVals(int(timeIntervals[idx].get('bst')))
             colorEnd   = getColorVals(int(timeIntervals[idx].get('ben')))
             perDiff = endPer - startPer #number of ticks for effect

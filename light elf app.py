@@ -5,7 +5,9 @@
 import wx, os, inspect, sys
 from multiprocessing import Process, cpu_count, Queue
 import  wx.lib.scrolledpanel as scrolled
-import re
+import re, time, logging
+
+
 
 from lsptranslation import Sequence, xNetwork
 
@@ -27,6 +29,7 @@ class LightingElf(wx.Frame):
     PROC_STATQ = 'PSQ'
     PROC_INFO = 'PIF'
     PROC_XNET = 'XNET'
+    EXEC_DIR = 'ED'
 
     sequences = []
     completeSeq = []
@@ -94,6 +97,8 @@ class LightingElf(wx.Frame):
         self.Bind(wx.EVT_MENU, self.aboutElf, id=401)
         ## Menu event connections end
 
+        #need to read default config and set this correctly... For now hard code it
+        self.seqOptionIndividual(None)
 
         self.frame_1_statusbar = self.CreateStatusBar(1, 0)
         self.sequencesPanel = scrolled.ScrolledPanel(self, -1,
@@ -153,6 +158,8 @@ class LightingElf(wx.Frame):
                         self.activeProc -= 1
                         seq[self.SEQUENCE_OBJ] = result
                         seq[self.SEQUENCE_STATUS].ChangeValue(stat)
+                        seq[self.SEQUENCE_COMPLETE] = wx.StaticBitmap(self.sequencesPanel, -1,
+                              wx.Bitmap(self.execPath + "\\checked.ico", wx.BITMAP_TYPE_ANY))
                     elif stat == "Error":
                          seq[self.SEQUENCE_STATUS].ChangeValue(stat)
                          self.activeProc -= 1
@@ -172,12 +179,18 @@ class LightingElf(wx.Frame):
                 elif self.activeProc < self.maxProc:
                     self.activeProc +=1
                     temp =  seq[self.PROC_INFO]
+                    temp[self.EXEC_DIR] = self.execPath
                     temp[self.PROC_INQ] = Queue()
                     temp[self.PROC_OUTQ] = Queue()
                     temp[self.PROC_STATQ] = Queue()
                     temp[self.PROC_XNET] = self.netInfo
                     seq[self.PROCESS] = Process(target=seqWorker,kwargs=temp)
                     seq[self.PROCESS].start()
+
+                    time.sleep(1)
+                    print seq[self.PROCESS]
+                    print temp
+
         self.Refresh()
         self.Layout()
 
@@ -266,7 +279,9 @@ class LightingElf(wx.Frame):
             #Export each sequence individually
             #NOT YET
             for seq in self.sequences:
-                seq[self.SEQUENCE_OBJ].outputxLights()
+                fname = seq[self.PROC_INFO][self.SEQUENCE_FILE]
+                fname = re.sub(r'msq$','xseq',fname)
+                seq[self.SEQUENCE_OBJ].outputxLights(fname)
 
         else:
             #Export single combines sequence. get Audio file first
@@ -368,10 +383,12 @@ class LightingElf(wx.Frame):
 
 
 def seqWorker(**kwargs):
+
     procInfo = kwargs
 
     xSeq = Sequence(procInfo[LightingElf.SEQUENCE_FILE],
-                    procInfo[LightingElf.PROC_XNET])
+                    procInfo[LightingElf.PROC_XNET],
+                    execDir=procInfo[LightingElf.EXEC_DIR])
 
     procInfo[LightingElf.PROC_STATQ].put('Extracting')
     if xSeq.extractSequence() == 1:
@@ -405,7 +422,9 @@ def seqWorker(**kwargs):
 
 # end of class LightingElf
 if __name__ == "__main__":
-    print os.path.realpath(__file__)
+
+##    logger = multiprocessing.log_to_stderr()
+##    logger.setLevel(multiprocessing.SUBDEBUG)
     app = wx.PySimpleApp(0)
 
     wx.InitAllImageHandlers()
