@@ -6,6 +6,7 @@ import wx, os, inspect, sys
 from multiprocessing import Process, cpu_count, Queue
 import  wx.lib.scrolledpanel as scrolled
 import re, time, logging
+import pickle
 
 
 
@@ -38,13 +39,16 @@ class LightingElf(wx.Frame):
         # begin wxGlade: LightingElf.__init__
         kwds["style"] = wx.DEFAULT_FRAME_STYLE
         wx.Frame.__init__(self, *args, **kwds)
-        self.maxProc = cpu_count() * 2
+        self.maxProc = cpu_count() # * 2
         self.activeProc = 0
         self.execPath = os.path.dirname(os.path.realpath(__file__))
 
         ico = wx.Icon('tree.ico',wx.BITMAP_TYPE_ICO)
         self.SetLabel("Lighting elf")
         self.SetIcon(ico)
+
+        #set Config File
+        self.cfgFile = self.execPath +"\\elf.cfg"
 
         ## Menu Bar
         self.menuBar = wx.MenuBar()
@@ -125,6 +129,13 @@ class LightingElf(wx.Frame):
         self.timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.update, self.timer)
 
+
+        if os.path.exists(self.cfgFile):
+            config = pickle.load(open(self.cfgFile,'rb'))
+            if config['SEQ_MODE'] == 'combine':
+                self.seqOptionCombine(None)
+                optionsMenu.Check(302,True)
+
         if os.path.exists('C:\\xLights\\xlights_networks.xml'):
            self.netInfo = xNetwork()
         else:
@@ -158,6 +169,7 @@ class LightingElf(wx.Frame):
                         self.activeProc -= 1
                         seq[self.SEQUENCE_OBJ] = result
                         seq[self.SEQUENCE_STATUS].ChangeValue(stat)
+                        del seq[self.SEQUENCE_COMPLETE]
                         seq[self.SEQUENCE_COMPLETE] = wx.StaticBitmap(self.sequencesPanel, -1,
                               wx.Bitmap(self.execPath + "\\checked.ico", wx.BITMAP_TYPE_ANY))
                     elif stat == "Error":
@@ -186,10 +198,6 @@ class LightingElf(wx.Frame):
                     temp[self.PROC_XNET] = self.netInfo
                     seq[self.PROCESS] = Process(target=seqWorker,kwargs=temp)
                     seq[self.PROCESS].start()
-
-                    time.sleep(1)
-                    print seq[self.PROCESS]
-                    print temp
 
         self.Refresh()
         self.Layout()
@@ -343,24 +351,40 @@ class LightingElf(wx.Frame):
 
 
     def CloseWindow(self, event):
+        config = {}
+        if self.individualSeq == True:
+            config['SEQ_MODE'] = 'Individual'
+        else:
+            config['SEQ_MODE'] = 'combine'
+        pickle.dump(config,open(self.cfgFile,'wb'))
         self.Close()
 
     def clearSequences(self, event):
+        print "ugh"
         dial = wx.MessageDialog(None, 'Currently in memory sequences will be'+
                                 'erased. Are you sure you want to proceed?'+
                                 '(No files will be deleted)',
          'Confirm clear', wx.OK | wx.ICON_EXCLAMATION | wx.CANCEL)
-        status = dial.ShowModal()
-        if status == wx.OK:
+        status = dial.ShowModal() == wx.OK
+
+        if status:
+            print "Here......"
             seqgrid = self.sequencesPanel.GetSizer()
             for seqGuiObjs in self.sequences:
+                print "there....."
+                seqgrid.Hide(seqGuiObjs[self.SEQUENCE_NAME])
+                seqgrid.Hide(seqGuiObjs[self.SEQUENCE_STATUS])
+                seqgrid.Hide(seqGuiObjs[self.SEQUENCE_PROGRESS])
+                seqgrid.Hide(seqGuiObjs[self.SEQUENCE_COMPLETE])
+                seqgrid.Remove(seqGuiObjs[self.SEQUENCE_NAME])
+                seqgrid.Remove(seqGuiObjs[self.SEQUENCE_STATUS])
+                seqgrid.Remove(seqGuiObjs[self.SEQUENCE_PROGRESS])
+                seqgrid.Remove(seqGuiObjs[self.SEQUENCE_COMPLETE])
 
-                seqgrid.Remove(tempDict[self.SEQUENCE_NAME])
-                seqgrid.Remove(tempDict[self.SEQUENCE_STATUS])
-                seqgrid.Remove(tempDict[self.SEQUENCE_PROGRESS])
-                seqgrid.Remove(tempDict[self.SEQUENCE_COMPLETE])
+
             seqgrid.SetRows(1)
             self.sequences = []
+
         self.Refresh()
         self.Layout()
         dial.Destroy()

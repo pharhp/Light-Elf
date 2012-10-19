@@ -41,6 +41,11 @@ class xNetwork:
             i+=1
             self.maxChan = self.maxChan + int(net.get('MaxChannels'))
 
+    def getNetStartChan(self, net):
+        chan = 0
+        for i in range(1,net):
+            chan += int(self.networks[i]['MaxChannels'])
+        return chan
 
     def getNetCount(self):
         return self.networks.count()
@@ -107,24 +112,29 @@ class Sequence():
         #initialize command buffer
         self.data = bytearray(self.networks.getMaxChannels()*self.numPeriods)
 
+    def log(self, string):
+        string += "\n"
+        self.logFile.write(string)
+
     def extractSequence(self):
-        print 'uno'
+
         #if re.search(r'msq$',self.seqdir, re.I) != None:
             #not an MSQ file so assuem uncompressed already
         #    return 0
-        print 'dos'
+
         if self.execDir == None:
             return 1
         cmd = self.execDir + "\\" + '7za.exe'
 
         if os.path.exists(cmd) == False:
-            print cmd
             return 1
 
         newDir = re.sub(r'\.msq$','',self.seqdir,flags=re.I)
+        self.logFile = open(newDir + ".log",'w')
 
-        print [cmd, "x", '"', self.seqdir, '"', "-o\"%s\""%newDir]
-        retcode = subprocess.call((cmd +" x  \"" + self.seqdir + "\" -o\"%s\""%newDir))
+        #self.log([cmd, "x", '"', self.seqdir, '"', "-o\"%s\""%newDir])
+
+        retcode = subprocess.call((cmd +" x -aoa \"" + self.seqdir + "\" -o\"%s\""%newDir),stdout=self.logFile)
         self.seqdir = newDir
         return retcode
 
@@ -146,7 +156,7 @@ class Sequence():
         totalFiles = len(dircontents)
         count = 0
         for f in dircontents:
-            print f
+            self.log( "Starting controller file: " + f )
             cTree=ElementTree(file=f)
             self.procController(cTree)
             del cTree
@@ -174,6 +184,11 @@ class Sequence():
 #TODO -- Need a function to calculate the actual channel based on network
 # definition etc in the network file. spare me having to pass around zone and id
 
+    def calcLORChan(self, netNum, chan, conID):
+        if conID < 0:
+           conID = conID - (1<<conID.bit_length())
+        lorNetChanNum = (conID-1) *16 +chan-1
+        return lorNetChanNum + self.networks.getNetStartChan(netNum)
 
     def procController(self, tree):
         rgbChans = {}
@@ -182,6 +197,11 @@ class Sequence():
         conID = int(root.find('ControllerID').text)
         conZone = int(root.find('ControllerZone').text)
         conName = root.find('ControllerName').text
+        conType = int(root.find('ControllerType').text)
+
+        if conType == 2:
+            self.log( "%s is a Virtual Controller skipping"%conName)
+            return
 
         for chan in chans.findall('Channel'):
             intervals = chan.find('Tracks').find('Track').find('Intervals')
@@ -190,21 +210,34 @@ class Sequence():
             gchan = int(chan.find('GreenChannelID').text) - 1
             bchan = int(chan.find('BlueChannelID').text) -1
             if not self.isValidChans(rchan,gchan,bchan, conZone, conID):
-                print "Warning! one of channels %d,%d,%d out of valid range!"\
-                    %(rchan,gchan,bchan)
+                self.log( "Warning! one of channels %d,%d,%d out of valid range!"\
+                    %(rchan,gchan,bchan))
                 continue
 
+            if conType == 0:
+               #process LOR Channel
+               rchan = self.calcLORChan(conZone, rchan, conID)
+               gchan = self.calcLORChan(conZone, gchan, conID)
+               bchan = self.calcLORChan(conZone, bchan, conID)
+            elif conZone > 1:
+                rchan += self.networks.getNetStartChan(conZone)
+                gchan += self.networks.getNetStartChan(conZone)
+                bchan += self.networks.getNetStartChan(conZone)
 
             if gchan == bchan:
                 #if gchan != -1 or bchan != -1:
                 #   print "Warning! expected a non RGB channel but"\
                 #          " green and blue have values."
                 if self.chanDict.has_key(rchan):
-                    print "Warning! Channel %d has already been processed."\
-                          " Duplicate Channel?" %(rchan)
-                    print "existing: ", self.chanDict[rchan]
-                    print "current: ","normal ", conID,\
-                                           conZone, conName
+                    self.log( "Warning! Channel %d has already been processed."
+                          " Duplicate Channel?" %(rchan) )
+                    string = "existing: "
+                    for val in self.chanDict[rchan]:
+                        string += str(val)
+##                    self.log( "existing: " + self.chanDict[rchan])
+                    self.log(string)
+                    self.log( "current: normal ConID %d ConZone %d, ConName %s"%( conID,\
+                                           conZone, conName))
                 self.chanDict[rchan] = ["normal", conID, conZone, conName]
                 self.procIntervals( rchan, intervals)
             else:
@@ -214,11 +247,15 @@ class Sequence():
                 for color in rgbChans.keys():
                     chan = rgbChans[color]
                     if chan in self.chanDict.keys():
-                        print "Warning! Channel %d has already been processed."\
-                              " Duplicate Channel?" %(rchan)
-                        print "existing: ", self.chanDict[chan]
-                        print "current: ","RGB %s"%(color), conID,\
-                                           conZone, conName
+                        self.log( "Warning! Channel %d has already been processed."
+                              " Duplicate Channel?" %(rchan))
+                        string = "Existing: "
+                        for val in self.chanDict[chan]:
+                            string += str(val)
+
+                        self.log( string)
+                        self.log( "current: RGB %s %d %d %s"%(color, conID,
+                                           conZone, conName ))
                     self.chanDict[chan] = ["RGB %s"%(color), conID,\
                                            conZone, conName]
                 self.procRGBIntervals( rgbChans, intervals)
