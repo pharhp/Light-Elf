@@ -37,13 +37,15 @@ class xNetwork:
         for net in root.findall('network'):
             networks.append({})
             for key in net.keys():
+                if key == "LastChannel":
+                    self.mapChans = True
                 networks[i][key] = net.get(key)
             i+=1
             self.maxChan = self.maxChan + int(net.get('MaxChannels'))
 
     def getNetStartChan(self, net):
         chan = 0
-        for i in range(1,net):
+        for i in range(net-1):
             chan += int(self.networks[i]['MaxChannels'])
         return chan
 
@@ -73,12 +75,15 @@ def normalizeIntensity(intensity):
 def main():
     netInfo = xNetwork()
 
-    seq = Sequence('C:\\xlights2012\\Bass Hunter 4 EE', netInfo)
+    seq = Sequence('C:\\xlights2012\\scuba\\Frank R short sequence.msq', netInfo,
+                   execDir=os.path.dirname(os.path.realpath(__file__)))
+    seq.extractSequence()
+    seq.procSequence()
 
     for (cur,total) in seq.convertLSPSequenceWStatus():
         print cur, total
 
-    seq.outputxLights("C:\\xlights2012\\Bass Hunter 4 EE.xseq")
+    seq.outputxLights("C:\\xlights2012\\Frank R short sequence.xseq")
 
 
 ################################################################################
@@ -187,7 +192,7 @@ class Sequence():
     def calcLORChan(self, netNum, chan, conID):
         if conID < 0:
            conID = conID - (1<<conID.bit_length())
-        lorNetChanNum = (conID-1) *16 +chan-1
+        lorNetChanNum = (conID-1) *16 +chan
         return lorNetChanNum + self.networks.getNetStartChan(netNum)
 
     def procController(self, tree):
@@ -445,4 +450,5 @@ class Sequence():
                 FH.write(condData)
 
 if __name__ == '__main__':
+
     main()

@@ -147,6 +147,18 @@ class LightingElf(wx.Frame):
 
         # end wxGlade
 
+    def markComplete(self, seq):
+        seqgrid = self.sequencesPanel.GetSizer()
+        newBitmap = wx.StaticBitmap(self.sequencesPanel, -1,
+                        wx.Bitmap(self.execPath + "\\checked.ico", wx.BITMAP_TYPE_ANY))
+        seqgrid.Hide(seq[self.SEQUENCE_COMPLETE])
+        seqgrid.Replace(seq[self.SEQUENCE_COMPLETE],newBitmap)
+        seq[self.SEQUENCE_COMPLETE].Destroy()
+        seq[self.SEQUENCE_COMPLETE] = newBitmap
+        self.Layout()
+        self.Refresh()
+        pass
+
     def update(self, timers):
 
         if len(self.sequences) != 0:
@@ -169,9 +181,7 @@ class LightingElf(wx.Frame):
                         self.activeProc -= 1
                         seq[self.SEQUENCE_OBJ] = result
                         seq[self.SEQUENCE_STATUS].ChangeValue(stat)
-                        del seq[self.SEQUENCE_COMPLETE]
-                        seq[self.SEQUENCE_COMPLETE] = wx.StaticBitmap(self.sequencesPanel, -1,
-                              wx.Bitmap(self.execPath + "\\checked.ico", wx.BITMAP_TYPE_ANY))
+                        self.markComplete(seq)
                     elif stat == "Error":
                          seq[self.SEQUENCE_STATUS].ChangeValue(stat)
                          self.activeProc -= 1
@@ -328,10 +338,6 @@ class LightingElf(wx.Frame):
                 for chan in range(self.netInfo.maxChan):
                     for seq in self.sequences:
                         FH.write(seq[self.SEQUENCE_OBJ].getChannelEvents(chan))
-
-
-
-
         pass
 
     def getAudioFileFromUser(self):
@@ -366,7 +372,8 @@ class LightingElf(wx.Frame):
                                 '(No files will be deleted)',
          'Confirm clear', wx.OK | wx.ICON_EXCLAMATION | wx.CANCEL)
         status = dial.ShowModal() == wx.OK
-
+        status = True
+        print "yadda..."
         if status:
             print "Here......"
             seqgrid = self.sequencesPanel.GetSizer()
@@ -449,7 +456,8 @@ if __name__ == "__main__":
 
 ##    logger = multiprocessing.log_to_stderr()
 ##    logger.setLevel(multiprocessing.SUBDEBUG)
-    app = wx.PySimpleApp(0)
+    #app = wx.PySimpleApp(0)
+    app = wx.App(filename='log.txt')
 
     wx.InitAllImageHandlers()
     frame_1 = LightingElf(None, -1, title="Lighting Elf", size=(800,300))
