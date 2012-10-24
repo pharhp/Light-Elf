@@ -366,19 +366,18 @@ class LightingElf(wx.Frame):
         self.Close()
 
     def clearSequences(self, event):
-        print "ugh"
+
         dial = wx.MessageDialog(None, 'Currently in memory sequences will be'+
                                 'erased. Are you sure you want to proceed?'+
                                 '(No files will be deleted)',
          'Confirm clear', wx.OK | wx.ICON_EXCLAMATION | wx.CANCEL)
-        status = dial.ShowModal() == wx.OK
-        status = True
-        print "yadda..."
+        status = dial.ShowModal() == wx.ID_OK
+
         if status:
-            print "Here......"
+
             seqgrid = self.sequencesPanel.GetSizer()
             for seqGuiObjs in self.sequences:
-                print "there....."
+
                 seqgrid.Hide(seqGuiObjs[self.SEQUENCE_NAME])
                 seqgrid.Hide(seqGuiObjs[self.SEQUENCE_STATUS])
                 seqgrid.Hide(seqGuiObjs[self.SEQUENCE_PROGRESS])
@@ -388,7 +387,7 @@ class LightingElf(wx.Frame):
                 seqgrid.Remove(seqGuiObjs[self.SEQUENCE_PROGRESS])
                 seqgrid.Remove(seqGuiObjs[self.SEQUENCE_COMPLETE])
 
-
+            self.miAddSeq.Enable(True)
             seqgrid.SetRows(1)
             self.sequences = []
 
@@ -409,9 +408,23 @@ class LightingElf(wx.Frame):
 
     def aboutElf(self, event):
         dlg = AboutBox()
-        dlg.ShowModal()
-        dlg.Destroy()
 
+
+class AboutBox(wx.Dialog):
+   def __init__(self):
+        info = wx.AboutDialogInfo()
+        info.Name = "Light Elf"
+        info.Version = "0.0.1 Pre-Beta"
+        info.Copyright = "(C) 2012 Frank Reichstein"
+        info.Description = \
+"""This program converts Light Show Pro 2.5 sequences
+directly to xLights format.  In addition it can combine sequences
+into a single sequence for seamless playback of huge sequences."""
+        #info.WebSite = ("http://www.pythonlibrary.org", "My Home Page")
+        info.Developers = ["Frank Reichstein"]
+        info.License = "Need set nets license info here"
+        # Show the wx.AboutBox
+        wx.AboutBox(info)
 
 def seqWorker(**kwargs):
 
