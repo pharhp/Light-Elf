@@ -201,7 +201,10 @@ class LightingElf(wx.Frame):
                     try:
                         stat = temp[self.PROC_STATQ].get_nowait()
                     except:
-                        continue
+                        if seq[self.PROCESS].is_alive():
+                           continue
+                        else:
+                           stat = "Error"
                     if stat == 'Done':
                         result = temp[self.PROC_OUTQ].get()
                         while not result != None and isinstance(result, Sequence):
@@ -217,6 +220,7 @@ class LightingElf(wx.Frame):
                         self.markComplete(seq)
                     elif stat == "Error":
                          seq[self.SEQUENCE_STATUS].ChangeValue(stat)
+                         seq[self.SEQUENCE_PROGRESS].SetValue(100)
                          self.activeProc -= 1
                     elif re.match(r'Proc',stat,re.I) != None :
                         try:
@@ -226,7 +230,7 @@ class LightingElf(wx.Frame):
 
                         except:
                             continue
-                            pass
+
                         seq[self.SEQUENCE_PROGRESS].SetValue(prog)
                         seq[self.SEQUENCE_STATUS].ChangeValue(stat)
                     else:
@@ -452,6 +456,9 @@ class LightingElf(wx.Frame):
 
 #-------------------------------------------------------------------------------
     def updateSettings(self, event):
+##        diag = settingsDialog(None,-1,"Settings")
+##        diag.ShowModal()
+##        diag.Destroy()
         pass
 
 #-------------------------------------------------------------------------------
@@ -477,6 +484,26 @@ into a single sequence for seamless playback of huge sequences."""
         info.License = License
         # Show the wx.AboutBox
         wx.AboutBox(info)
+
+################################################################################
+#-------------------------------------------------------------------------------
+#
+class settingsDialog(wx.Dialog):
+    def __init__(self, parent, id, title, path = "C:\\xLights"):
+        wx.Dialog.__init__(self, parent, id, title, size=(500,300))
+
+        vbox = wx.BoxSizer(wx.VERTICAL)
+        hbox = wx.BoxSizer(wx.HORIZONTAL)
+        lbXDir = wx.StaticText(self,11,"xLights Directory")
+        hbox.Add(lbXDir, 1, wx.ALIGN_CENTER|wx.TOP, 45)
+        tcDir = wx.TextCtrl(self, -1, path, size=(10,20))
+        hbox.Add(tcDir, 1, wx.ALIGN_CENTER|wx.TOP, 45)
+        bmp = wx.ArtProvider.GetBitmap(wx.ART_FOLDER, wx.ART_OTHER, (16,16))
+        btDir = wx.BitmapButton(self,-1,bmp, size=(20,20))
+        hbox.Add(btDir,1,wx.ALIGN_CENTER,wx.TOP,45)
+
+        self.SetSizer(hbox)
+
 
 ################################################################################
 #-------------------------------------------------------------------------------

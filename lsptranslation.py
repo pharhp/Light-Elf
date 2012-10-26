@@ -343,10 +343,17 @@ class Sequence():
                 continue
 
             endPer = periodNum(int(float(timeIntervals[idx+1].get('pos'))))
-            startIntensity = \
-                normalizeIntensity(int(timeIntervals[idx].get('in')))
-            endIntensity = \
-                normalizeIntensity(int(timeIntervals[idx].get('out')))
+            try:
+                startIntensity = \
+                    normalizeIntensity(int(timeIntervals[idx].get('in')))
+            except TypeError:
+                startIntensity = 0
+            try:
+                endIntensity = \
+                    normalizeIntensity(int(timeIntervals[idx].get('out')))
+            except TypeError:
+                endIntensity = 0
+
             perDiff = endPer - startPer #number of ticks for effect
 
             #Diagnostic code
@@ -425,8 +432,14 @@ class Sequence():
                 # offs as well.
                 continue
 
-            inpct = int(timeIntervals[idx].get('in'))
-            outpct = int(timeIntervals[idx].get('out'))
+            try:
+                inpct = int(timeIntervals[idx].get('in'))
+            except TypeError:
+                inpct = 0
+            try:
+                outpct = int(timeIntervals[idx].get('out'))
+            except TypeError:
+                outpct = 0
 
             endPer = periodNum(int(float(timeIntervals[idx+1].get('pos'))))
 
