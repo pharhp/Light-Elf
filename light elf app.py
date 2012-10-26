@@ -29,7 +29,9 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
-Version = "0.0.1 Beta"
+Version = "0.0.2 Beta"
+
+
 #-------------------------------------------------------------------------------
 
 import wx, os, inspect, sys
@@ -42,10 +44,7 @@ import pickle
 
 from lsptranslation import Sequence, xNetwork
 
-# begin wxGlade: extracode
-# end wxGlade
-
-
+################################################################################
 class LightingElf(wx.Frame):
     SEQUENCE_NAME = 'SN'
     SEQUENCE_FILE = 'SF'
@@ -117,6 +116,7 @@ class LightingElf(wx.Frame):
         self.menuBar.Append(helpMenu, "&Help")
         self.SetMenuBar(self.menuBar)
         ## Menu Bar end
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
 
         ## Menu event connections
         self.Bind(wx.EVT_MENU, self.exportSequence, id=101)
@@ -288,6 +288,7 @@ class LightingElf(wx.Frame):
         if dlg.ShowModal() == wx.ID_OK:
             grid = self.sequencesPanel.GetSizer()
             paths = dlg.GetPaths()
+            print "adding sequences"
 
             for path in paths:
                 grid.SetRows(grid.GetRows()+1)
@@ -333,6 +334,9 @@ class LightingElf(wx.Frame):
                 fname = seq[self.PROC_INFO][self.SEQUENCE_FILE]
                 fname = re.sub(r'msq$','xseq',fname)
                 seq[self.SEQUENCE_OBJ].outputxLights(fname)
+                if self.netInfo.maxChan == 16384:
+                   fname = re.sub(r'xseq$','seq',fname)
+                   seq[self.SEQUENCE_OBJ].outputConductor
 
         else:
             #Export single combines sequence. get Audio file first
@@ -363,11 +367,11 @@ class LightingElf(wx.Frame):
                     numPeriods += seq[self.SEQUENCE_OBJ].numPeriods
                 #Open file and output header
                 FH = open(exportFile, 'wb')
-                FH.write(b'xLights  1 %8d %8d'%self.netInfo.maxChan, numPeriods)
+                FH.write(b'xLights  1 %8d %8d'%(self.netInfo.maxChan, numPeriods))
                 FH.write(b'\x00\x00\x00\x00')
                 FH.write(b'%s'%self.audioFile)
                 #Pad out to 512 bytes
-                FH.write(b'\x00'*(512 - int(len(self.songFile)) -32))
+                FH.write(b'\x00'*(512 - int(len(self.audioFile)) -32))
                 for chan in range(self.netInfo.maxChan):
                     for seq in self.sequences:
                         FH.write(seq[self.SEQUENCE_OBJ].getChannelEvents(chan))
@@ -380,7 +384,7 @@ class LightingElf(wx.Frame):
             self, message="Select Sequence Audio File",
             defaultFile="",
             defaultDir="C:\\xlights",
-            wildcard='*.mp3,*.wav',
+            wildcard='Audio Files (*.mp3;*.wav)|*.mp3;*.wav|All Files (*.*)|*.*',
             style=wx.OPEN | wx.CHANGE_DIR
             )
         if dlg.ShowModal() == wx.ID_OK:
@@ -391,13 +395,17 @@ class LightingElf(wx.Frame):
 
 #-------------------------------------------------------------------------------
     def CloseWindow(self, event):
+        self.Close()
+
+#-------------------------------------------------------------------------------
+    def OnClose(self, event):
         config = {}
         if self.individualSeq == True:
             config['SEQ_MODE'] = 'Individual'
         else:
             config['SEQ_MODE'] = 'combine'
         pickle.dump(config,open(self.cfgFile,'wb'))
-        self.Close()
+        self.Destroy()
 
 #-------------------------------------------------------------------------------
     def clearSequences(self, event):
@@ -450,11 +458,10 @@ class LightingElf(wx.Frame):
     def aboutElf(self, event):
         dlg = AboutBox()
 
-#
+################################################################################
 #-------------------------------------------------------------------------------
 #
-#
-#
+
 class AboutBox(wx.Dialog):
    def __init__(self):
         info = wx.AboutDialogInfo()
@@ -470,6 +477,8 @@ into a single sequence for seamless playback of huge sequences."""
         info.License = License
         # Show the wx.AboutBox
         wx.AboutBox(info)
+
+################################################################################
 #-------------------------------------------------------------------------------
 # function to handle the sub processes that do translations
 #
@@ -506,13 +515,7 @@ def seqWorker(**kwargs):
     except:
         pass
 
-
-
-
-
-
-
-# end of class LightingElf
+################################################################################
 if __name__ == "__main__":
 
     #app = wx.PySimpleApp(0)
