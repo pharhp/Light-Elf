@@ -29,7 +29,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
-Version = "0.0.2 Beta"
+Version = "0.0.3 Beta"
 
 
 #-------------------------------------------------------------------------------
@@ -336,7 +336,7 @@ class LightingElf(wx.Frame):
                 seq[self.SEQUENCE_OBJ].outputxLights(fname)
                 if self.netInfo.maxChan == 16384:
                    fname = re.sub(r'xseq$','seq',fname)
-                   seq[self.SEQUENCE_OBJ].outputConductor
+                   seq[self.SEQUENCE_OBJ].outputConductor(fname)
 
         else:
             #Export single combines sequence. get Audio file first

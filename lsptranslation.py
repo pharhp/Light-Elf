@@ -93,11 +93,14 @@ class xNetwork:
 
 ################################################################################
 
-def getColorVals(colorInt):
+def getColorVals(colorInt, pct=100):
     retval = {}
     retval['RED'] = (colorInt&0x00ff0000)>>16
     retval['GREEN'] = (colorInt&0x0000ff00)>>8
     retval['BLUE'] = (colorInt&0x000000ff)
+    if pct != 100:
+       for key in retval.keys():
+           retval[key] = int(pct/100 * retval[key] )
     return retval
 
 def periodNum(lspPosVal):
@@ -422,9 +425,19 @@ class Sequence():
                 # offs as well.
                 continue
 
+            inpct = int(timeIntervals[idx].get('in'))
+            outpct = int(timeIntervals[idx].get('out'))
+
             endPer = periodNum(int(float(timeIntervals[idx+1].get('pos'))))
-            colorStart = getColorVals(int(timeIntervals[idx].get('bst')))
-            colorEnd   = getColorVals(int(timeIntervals[idx].get('ben')))
+
+            if effect == 2:
+                colorStart = getColorVals(int(timeIntervals[idx].get('bst')),
+                                                                          inpct)
+                colorEnd   = getColorVals(int(timeIntervals[idx].get('ben')),
+                                                                         outpct)
+            else:
+                colorStart = getColorVals(int(timeIntervals[idx].get('bst')))
+                colorEnd   = getColorVals(int(timeIntervals[idx].get('ben')))
             perDiff = endPer - startPer #number of ticks for effect
 
             twinklestate = shimmerstate = 1
