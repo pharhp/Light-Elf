@@ -428,11 +428,11 @@ class LightingElf(wx.Frame):
                 seqgrid.Hide(seqGuiObjs[self.SEQUENCE_NAME])
                 seqgrid.Hide(seqGuiObjs[self.SEQUENCE_STATUS])
                 seqgrid.Hide(seqGuiObjs[self.SEQUENCE_PROGRESS])
-                seqgrid.Hide(seqGuiObjs[self.SEQUENCE_COMPLETE])
+##                seqgrid.Hide(seqGuiObjs[self.SEQUENCE_COMPLETE])
                 seqgrid.Remove(seqGuiObjs[self.SEQUENCE_NAME])
                 seqgrid.Remove(seqGuiObjs[self.SEQUENCE_STATUS])
                 seqgrid.Remove(seqGuiObjs[self.SEQUENCE_PROGRESS])
-                seqgrid.Remove(seqGuiObjs[self.SEQUENCE_COMPLETE])
+##                seqgrid.Remove(seqGuiObjs[self.SEQUENCE_COMPLETE])
 
             self.miAddSeq.Enable(True)
             seqgrid.SetRows(1)

@@ -41,6 +41,20 @@ XLIGHTS_INTERVAL = 50
 LSP_MS_PERIOD = 88.2
 MAX_INTENSITY = 100
 
+##Controller Protocol
+protoMap = {
+         0:'LOR',
+         1:'Entec Open',
+         2:'Entec Pro',
+         3:'Unknown',
+         4:'Animated Lighting',
+         5:'Renard',
+         6:'e1.31',
+         7:'Pixelnet',
+}
+
+
+
 ################################################################################
 class xNetwork:
     """A class to hold data about the xLight configuration on the local PC"""
@@ -127,7 +141,7 @@ class Sequence():
         self.networks= netInf
         self.tempDir = tempDir
         self.execDir = execDir
-
+#-------------------------------------------------------------------------------
     def procSequence(self):
         #start with a root directory. assume that we have a Sequnce file and a dir
         os.chdir(self.seqdir)
@@ -139,10 +153,12 @@ class Sequence():
         #initialize command buffer
         self.data = bytearray(self.networks.getMaxChannels()*self.numPeriods)
 
+#-------------------------------------------------------------------------------
     def log(self, string):
         string += "\n"
         self.logFile.write(string)
 
+#-------------------------------------------------------------------------------
     def extractSequence(self):
 
         #if re.search(r'msq$',self.seqdir, re.I) != None:
@@ -165,11 +181,12 @@ class Sequence():
         self.seqdir = newDir
         return retcode
 
-
+#-------------------------------------------------------------------------------
     def sendError(self):
         if self.statQ != None:
             self.statQ.put('Error')
 
+#-------------------------------------------------------------------------------
     def convertLSPSequence(self):
         os.chdir('Controllers')
         for f in os.listdir(os.getcwd()):
@@ -177,6 +194,7 @@ class Sequence():
             self.procController(cTree, outfile)
             del cTree
 
+#-------------------------------------------------------------------------------
     def convertLSPSequenceWStatus(self):
         os.chdir('Controllers')
         dircontents = os.listdir(os.getcwd())
@@ -190,6 +208,7 @@ class Sequence():
             count += 1
             yield (count,totalFiles)
 
+#-------------------------------------------------------------------------------
     def getMediaInfo(self,tree):
         root = tree.getroot()
         mmf = root.find('MultiMediaFile')
@@ -198,6 +217,7 @@ class Sequence():
         self.numPeriods = periodNum(length)
         self.songFile = mmf.find('MediaFileName').text
 
+#-------------------------------------------------------------------------------
     def isValidChans(self, rchan, gchan, bchan, conZone, conID):
         """validate that the channels in current processing time are valid
            based on the existing xLights netowrk definition"""
@@ -211,12 +231,14 @@ class Sequence():
 #TODO -- Need a function to calculate the actual channel based on network
 # definition etc in the network file. spare me having to pass around zone and id
 
+#-------------------------------------------------------------------------------
     def calcLORChan(self, netNum, chan, conID):
         if conID < 0:
            conID = conID - (1<<conID.bit_length())
         lorNetChanNum = (conID-1) *16 +chan
         return lorNetChanNum + self.networks.getNetStartChan(netNum)
 
+#-------------------------------------------------------------------------------
     def procController(self, tree):
         rgbChans = {}
         root = tree.getroot()
@@ -225,10 +247,16 @@ class Sequence():
         conZone = int(root.find('ControllerZone').text)
         conName = root.find('ControllerName').text
         conType = int(root.find('ControllerType').text)
+        conProtocol = int(root.find('ControllerProtocol').text)
 
         if conType == 2:
             self.log( "%s is a Virtual Controller skipping"%conName)
             return
+        self.log("Name: %s, ID: %d, Zone: %d, Prtocol: %s"%(
+                 conName, conID, conZone, protoMap[conProtocol]))
+        if conProtocol == 4:
+           self.log("xLights does not understand Animated Lighting")
+           return
 
         for chan in chans.findall('Channel'):
             intervals = chan.find('Tracks').find('Track').find('Intervals')
@@ -241,7 +269,7 @@ class Sequence():
                     %(rchan,gchan,bchan))
                 continue
 
-            if conType == 0:
+            if conProtocol == 0:
                #process LOR Channel
                rchan = self.calcLORChan(conZone, rchan, conID)
                gchan = self.calcLORChan(conZone, gchan, conID)
@@ -287,6 +315,7 @@ class Sequence():
                                            conZone, conName]
                 self.procRGBIntervals( rgbChans, intervals)
 
+#-------------------------------------------------------------------------------
     def procIntervals(self, chan, intervals):
         timeIntervals = intervals.findall('TimeInterval')
         numInt = len(timeIntervals)
@@ -327,7 +356,7 @@ class Sequence():
                             startIntensity, endIntensity)
 
 
-
+#-------------------------------------------------------------------------------
     def procEffect(self, chan, effect, startPer, perDiff, \
                    startIntensity, endIntensity):
         """Handle single color effects generation"""
@@ -368,7 +397,7 @@ class Sequence():
         else:
             print "Warning! unhandled effect value %d. chan %d"%(effect,chan)
 
-
+#-------------------------------------------------------------------------------
     def procRGBIntervals( self, rgbChans, intervals):
         timeIntervals = intervals.findall('TimeInterval')
         numInt = len(timeIntervals)
@@ -437,13 +466,14 @@ class Sequence():
                       twinklestate = random.randint(0,1)
                       nexttwinkle = random.randint(2,10)
 
+#-------------------------------------------------------------------------------
     def getChannelEvents(self, chanNum):
         chanEvents = bytearray(self.numPeriods)
         chanEvents = self.data[(chanNum-1)*self.numPeriods:
                                 (chanNum*self.numPeriods)]
         return chanEvents
 
-
+#-------------------------------------------------------------------------------
     def outputxLights(self,outfile):
         print("Generating xseq")
         FH = open(outfile,'wb')
@@ -458,6 +488,7 @@ class Sequence():
         FH.write(self.data)
         FH.close()
 
+#-------------------------------------------------------------------------------
     def outputConductor(self, outfile):
         condData = bytearray(4)
         FH = open(outfile,'wb')
@@ -474,7 +505,7 @@ class Sequence():
                     condData[j] = self.data[ch*self.numPeriods + period] if ch<self.networks.maxChan else 0
 
                 FH.write(condData)
-
+################################################################################
 if __name__ == '__main__':
 
     main()
