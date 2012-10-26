@@ -372,7 +372,7 @@ class LightingElf(wx.Frame):
                 FH.write(b'%s'%self.audioFile)
                 #Pad out to 512 bytes
                 FH.write(b'\x00'*(512 - int(len(self.audioFile)) -32))
-                for chan in range(self.netInfo.maxChan):
+                for chan in range(self.netInfo.maxChan+1):
                     for seq in self.sequences:
                         FH.write(seq[self.SEQUENCE_OBJ].getChannelEvents(chan))
         pass
