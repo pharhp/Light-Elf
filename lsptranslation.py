@@ -144,6 +144,8 @@ class Sequence():
         self.networks= netInf
         self.tempDir = tempDir
         self.execDir = execDir
+        self.logLevel = 3
+
 #-------------------------------------------------------------------------------
     def procSequence(self):
         #start with a root directory. assume that we have a Sequnce file and a dir
@@ -152,6 +154,8 @@ class Sequence():
         self.getMediaInfo(sTree)
         del sTree
 
+        self.log("Channels in Networks: %d"%self.networks.maxChan)
+        self.log("50ms Periods in sequence: %d"%self.numPeriods)
         #we now know song length in periods and total expected channel count
         #initialize command buffer
         self.data = bytearray(self.networks.getMaxChannels()*self.numPeriods)
@@ -210,6 +214,7 @@ class Sequence():
             del cTree
             count += 1
             yield (count,totalFiles)
+
 
 #-------------------------------------------------------------------------------
     def getMediaInfo(self,tree):
@@ -367,6 +372,21 @@ class Sequence():
 
 
 #-------------------------------------------------------------------------------
+    def logStats(self):
+        if len(self.chanEffectCounts.keys()) > 0:
+            keys = self.chanEffectCounts.keys()
+            keys.sort()
+            if self.logLevel >= 2:
+               self.log('Number of channels with effects: %d'%(len(self.chanEffectCounts.keys())))
+##            if self.logLevel >=3:
+##               string = ''
+##               for key in keys:
+##                   string += 'chan %d has %d effects'%(key, self.chanEffectCounts[key])
+##                   if len(string) > 100:
+##                      self.log(string)
+##                      string = ''
+
+#-------------------------------------------------------------------------------
     def procEffect(self, chan, effect, startPer, perDiff, \
                    startIntensity, endIntensity):
         """Handle single color effects generation"""
@@ -379,10 +399,7 @@ class Sequence():
             for i in range(perDiff):
                 intensity = startIntensity if rampDiff == 0 else \
                            (int)(intensityInc*i) + startIntensity
-                try:
-                    self.data[chan*self.numPeriods+startPer+i] = intensity
-                except ValueError:
-                       print "blah"
+                self.setChanData(chan, startPer+i,intensity)
 
         elif effect == 5: #handle twinkle effect
             twinklestate = random.randint(0,1)
@@ -390,8 +407,8 @@ class Sequence():
 
             for i in range(perDiff):
                 intensity = (int)(intensityInc*i) + startIntensity
-                self.data[chan*self.numPeriods+startPer+i] = \
-                                                intensity*twinklestate
+                self.setChanData(chan, startPer+i,intensity*twinklestate)
+
                 nexttwinkle -= 1
                 if nexttwinkle == 0:
                     twinklestate = random.randint(0,1)
@@ -402,10 +419,15 @@ class Sequence():
             for i in range(perDiff):
                 intensity = (int)(intensityInc*i) + startIntensity
                 shimmerstate = (perDiff + i) & 0x01
-                self.data[chan*self.numPeriods+startPer+i] = \
-                                                intensity*shimmerstate
+                self.setChanData(chan, startPer+i,intensity*shimmerstate)
         else:
-            print "Warning! unhandled effect value %d. chan %d"%(effect,chan)
+            self.log("Warning! unhandled effect value %d. chan %d"%(effect,chan))
+#-------------------------------------------------------------------------------
+    def setChanData(self, chan, period, value):
+        try:
+            self.data[chan*self.numPeriods+period] = value
+        except IndexError:
+               self.log("Index out of range! Chan %d Period %d "%(chan,period))
 
 #-------------------------------------------------------------------------------
     def procRGBIntervals( self, rgbChans, intervals):
@@ -480,12 +502,10 @@ class Sequence():
                     else:
                         self.chanEffectCounts[chan] = 1
                     self.effectCount += 1
-                    try:
-                        self.data[chan*self.numPeriods+startPer+i] = \
-                                        (int(i*rgbDel[color])+colorStart[color]) \
+                    val = (int(i*rgbDel[color])+colorStart[color]) \
                                                    * (shimmerstate*twinklestate)
-                    except (ValueError, TypeError):
-                           pass
+                    self.setChanData(chan, startPer+i,val)
+
                 if effect == 5:
                    nexttwinkle -= 1
                    if nexttwinkle == 0:

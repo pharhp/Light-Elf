@@ -29,7 +29,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
-Version = "0.0.3 Beta"
+Version = "0.0.6 Beta"
 
 
 #-------------------------------------------------------------------------------
@@ -196,8 +196,9 @@ class LightingElf(wx.Frame):
 
         if len(self.sequences) != 0:
             for seq in self.sequences:
-                if seq.has_key(self.PROCESS):
+                if seq.has_key(self.PROCESS) and not seq.has_key(self.SEQUENCE_OBJ):
                     temp = seq[self.PROC_INFO]
+                    stat = ''
                     try:
                         stat = temp[self.PROC_STATQ].get_nowait()
                     except:
@@ -216,6 +217,7 @@ class LightingElf(wx.Frame):
                                   seq[self.SEQUENCE_STATUS].ChangeValue('Error No Seq')
                                   return
                         assert(isinstance(result,Sequence))
+
                         self.activeProc -= 1
                         seq[self.SEQUENCE_OBJ] = result
                         seq[self.SEQUENCE_STATUS].ChangeValue(stat)
@@ -237,7 +239,7 @@ class LightingElf(wx.Frame):
                         seq[self.SEQUENCE_STATUS].ChangeValue(stat)
                     else:
                          seq[self.SEQUENCE_STATUS].ChangeValue(stat)
-                elif self.activeProc < self.maxProc:
+                elif self.activeProc < self.maxProc and not seq.has_key(self.PROCESS):
                     self.activeProc +=1
                     temp =  seq[self.PROC_INFO]
                     temp[self.EXEC_DIR] = self.execPath
@@ -406,6 +408,13 @@ class LightingElf(wx.Frame):
 #-------------------------------------------------------------------------------
     def OnClose(self, event):
         config = {}
+
+        if len(self.sequences) != 0:
+            for seq in self.sequences:
+                if seq.has_key(self.PROCESS):
+                   if seq[self.PROCESS].is_alive():
+                      seq[self.PROCESS].terminate()
+
         if self.individualSeq == True:
             config['SEQ_MODE'] = 'Individual'
         else:
@@ -539,6 +548,7 @@ def seqWorker(**kwargs):
             pass
 
     try:
+        xSeq.logStats()
         procInfo[LightingElf.PROC_STATQ].put_nowait('Done')
         procInfo[LightingElf.PROC_OUTQ].put_nowait(xSeq)
     except:
