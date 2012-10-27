@@ -204,7 +204,9 @@ class LightingElf(wx.Frame):
                         if seq[self.PROCESS].is_alive():
                            continue
                         else:
-                           stat = "Error"
+                            if seq[self.PROCESS].exitcode != None and \
+                                seq[self.PROCESS].exitcode != 0:
+                                stat = "Error"
                     if stat == 'Done':
                         result = temp[self.PROC_OUTQ].get()
                         while not result != None and isinstance(result, Sequence):
