@@ -178,8 +178,10 @@ class Sequence():
 
         if os.path.exists(cmd) == False:
             return 1
+        seqName = re.split(r'\\', self.seqdir, flags=re.I)[-1]
 
-        newDir = re.sub(r'\.msq$','',self.seqdir,flags=re.I)
+        newDir = self.tempDir + '\\' + re.sub(r'\.msq$','',seqName,flags=re.I)
+        print newDir
         self.logFile = open(newDir + ".log",'w')
 
         #self.log([cmd, "x", '"', self.seqdir, '"', "-o\"%s\""%newDir])

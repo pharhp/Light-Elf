@@ -29,7 +29,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
-Version = "0.0.6 Beta"
+Version = "0.0.7 Beta"
 
 
 #-------------------------------------------------------------------------------
@@ -60,6 +60,8 @@ class LightingElf(wx.Frame):
     PROC_INFO = 'PIF'
     PROC_XNET = 'XNET'
     EXEC_DIR = 'ED'
+    SEQUENCE_XDIR = 'XD'
+    SEQUENCE_TEMPDIR = 'TD'
 
     sequences = []
     completeSeq = []
@@ -99,20 +101,20 @@ class LightingElf(wx.Frame):
 
         #Options menu setup
         optionsMenu = wx.Menu()
-        optionsMenu.Append(301,"Individual Sequence",
+        optionsMenu.Append(301,"&Individual Sequence",
                            "Proces each sequence as an individual sequence.",
                            wx.ITEM_RADIO)
-        optionsMenu.Append(302,"Combine Sequences",
+        optionsMenu.Append(302,"&Combine Sequences",
                            "Combine all selected sequences into one seamless sequence",
                            wx.ITEM_RADIO )
         optionsMenu.AppendSeparator()
-        optionsMenu.Append(303,"Settings", "Set directories used by the elf",
+        optionsMenu.Append(303,"&Settings", "Set directories used by the elf",
                            wx.ITEM_NORMAL)
         self.menuBar.Append(optionsMenu,"&Options")
 
         #Help Menu Setup
         helpMenu = wx.Menu()
-        helpMenu.Append(401, "About", "", wx.ITEM_NORMAL)
+        helpMenu.Append(401, "&About", "", wx.ITEM_NORMAL)
         self.menuBar.Append(helpMenu, "&Help")
         self.SetMenuBar(self.menuBar)
         ## Menu Bar end
@@ -137,18 +139,18 @@ class LightingElf(wx.Frame):
 
         self.frame_1_statusbar = self.CreateStatusBar(1, 0)
         self.sequencesPanel = scrolled.ScrolledPanel(self, -1,
-                              style=wx.DOUBLE_BORDER | wx.TAB_TRAVERSAL, size=(800,200))
+                              style=wx.DOUBLE_BORDER | wx.TAB_TRAVERSAL, size=(650,300))
         self.lbSequenceName = wx.StaticText(self.sequencesPanel, -1,
-                            "Sequence Name                                                                          ",
+                            " Sequence Name",
                             style = wx.RAISED_BORDER | wx.ALL |
-                            wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_LEFT,
+                             wx.ALIGN_LEFT,
                             size=(400,20)
                             )
-        self.lbSequenceStatusText = wx.StaticText(self.sequencesPanel, -1, "Activity",
+        self.lbSequenceStatusText = wx.StaticText(self.sequencesPanel, -1, " Activity",
                                   style = wx.RAISED_BORDER,
                                   size=(100,20)
                                   )
-        self.lbStatusGauge = wx.StaticText(self.sequencesPanel, -1, "Import Status",
+        self.lbStatusGauge = wx.StaticText(self.sequencesPanel, -1, " Import Status",
                            style = wx.RAISED_BORDER,
                            size=(100,20)
                            )
@@ -160,19 +162,26 @@ class LightingElf(wx.Frame):
         self.timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.update, self.timer)
 
-
+        self.tempDir = ''
+        self.xlightDir = ''
+        self.xnetFile = ''
         if os.path.exists(self.cfgFile):
             config = pickle.load(open(self.cfgFile,'rb'))
             if config['SEQ_MODE'] == 'combine':
                 self.seqOptionCombine(None)
                 optionsMenu.Check(302,True)
+            if config.has_key(self.SEQUENCE_TEMPDIR):
+                self.tempDir = config[self.SEQUENCE_TEMPDIR]
+                self.xlightDir = config[self.SEQUENCE_XDIR]
 
-        if os.path.exists('C:\\xLights\\xlights_networks.xml'):
-           self.netInfo = xNetwork()
+        self.xnetFile = 'C:\\xLights\\xlights_networks.xml' if self.xlightDir == '' else self.xlightDir + '\\xlights_networks.xml'
+        if os.path.exists(self.xnetFile):
+           self.netInfo = xNetwork(self.xnetFile)
         else:
-            dlg = wx.MessageBox('xlights_network.xml file not found at C:\\xLights\\xlights_networks.xml'
+            dlg = wx.MessageBox('xlights_network.xml file not found at %s'%(self.xlightDir)
                 + ' if you already have a configured xlights network make sure options->xlights directory is '
-                + 'is set properly' )
+                + 'set properly' )
+            self.miAddSeq.Enable(False)
         self.__set_properties()
         self.__do_layout()
 
@@ -247,6 +256,8 @@ class LightingElf(wx.Frame):
                     temp[self.PROC_OUTQ] = Queue()
                     temp[self.PROC_STATQ] = Queue()
                     temp[self.PROC_XNET] = self.netInfo
+                    temp[self.SEQUENCE_XDIR] = self.xlightDir
+                    temp[self.SEQUENCE_TEMPDIR] = self.tempDir
                     seq[self.PROCESS] = Process(target=seqWorker,kwargs=temp)
                     seq[self.PROCESS].start()
 
@@ -307,8 +318,10 @@ class LightingElf(wx.Frame):
                 procDict[self.SEQUENCE_FILE] = path
                 tempDict[self.SEQUENCE_NAME] = wx.TextCtrl(
                                                        self.sequencesPanel, -1, path)
-                tempDict[self.SEQUENCE_STATUS] = wx.TextCtrl(self.sequencesPanel, -1, "waiting")
-                tempDict[self.SEQUENCE_PROGRESS] = wx.Gauge(self.sequencesPanel, -1, 100)
+                tempDict[self.SEQUENCE_NAME].SetEditable(False)
+                tempDict[self.SEQUENCE_STATUS] = wx.TextCtrl(self.sequencesPanel, -1, "waiting", size=(100,30))
+                tempDict[self.SEQUENCE_STATUS].SetEditable(False)
+                tempDict[self.SEQUENCE_PROGRESS] = wx.Gauge(self.sequencesPanel, -1, 100 )
 ##                tempDict[self.SEQUENCE_COMPLETE] = wx.StaticBitmap(self.sequencesPanel, -1,
 ##                              wx.Bitmap(self.execPath + "\\notchecked.ico", wx.BITMAP_TYPE_ANY))
                 grid.Add(tempDict[self.SEQUENCE_NAME], 0, wx.ALL | wx.EXPAND, 3)
@@ -320,9 +333,9 @@ class LightingElf(wx.Frame):
             self.numSequences = len(paths)
             self.timer.Start(500)
             self.miAddSeq.Enable(False)
+            self.sequencesPanel.SetSizer(grid)
 
         dlg.Destroy()
-        self.sequencesPanel.SetSizer(grid)
         self.sequencesPanel.SetAutoLayout(1)
         self.sequencesPanel.SetupScrolling()
 
@@ -419,6 +432,9 @@ class LightingElf(wx.Frame):
             config['SEQ_MODE'] = 'Individual'
         else:
             config['SEQ_MODE'] = 'combine'
+        config[self.SEQUENCE_XDIR] = self.xlightDir
+        config[self.SEQUENCE_TEMPDIR] = self.tempDir
+
         pickle.dump(config,open(self.cfgFile,'wb'))
         self.Destroy()
 
@@ -433,7 +449,6 @@ class LightingElf(wx.Frame):
         status = dial.ShowModal() == wx.ID_OK
 
         self.timer.Stop()
-
         if status:
 
             seqgrid = self.sequencesPanel.GetSizer()
@@ -469,9 +484,35 @@ class LightingElf(wx.Frame):
 
 #-------------------------------------------------------------------------------
     def updateSettings(self, event):
-##        diag = settingsDialog(None,-1,"Settings")
-##        diag.ShowModal()
-##        diag.Destroy()
+        diag = settingsDialog(None,-1,"Settings",defaultDir = self.xlightDir,
+                              tempDir = self.tempDir)
+        status = diag.ShowModal()
+        if status == wx.ID_OK:
+            self.xlightDir = diag.defaultDir
+            self.tempDir = diag.tempDir
+            if len(self.sequences) != 0:
+                dial = wx.MessageDialog(None, 'Currently converted sequencs will need to be'+
+                                ' reconverted to follow new xlight network definitions',
+                                'Sequences not updated', wx.OK | wx.ICON_EXCLAMATION)
+                dial.Destroy()
+
+            self.xnetFile = self.xlightDir + '\\xlights_networks.xml'
+            if os.path.exists(self.xnetFile):
+                self.netInfo = xNetwork(self.xnetFile)
+                self.miAddSeq.Enable(True)
+            else:
+                dlg = wx.MessageBox('xlights_network.xml file not found at %s'%(self.xnetFile)
+                    + ' if you already have a configured xlights network make sure options->Settings->'+
+                    'xlights directory is set properly' )
+                self.miAddSeq.Enable(False)
+
+        elif status == wx.ID_CANCEL:
+            print "Cancel was hit"
+        else:
+            print "Neither one hit the value"
+
+
+        diag.Destroy()
         pass
 
 #-------------------------------------------------------------------------------
@@ -502,20 +543,58 @@ into a single sequence for seamless playback of huge sequences."""
 #-------------------------------------------------------------------------------
 #
 class settingsDialog(wx.Dialog):
-    def __init__(self, parent, id, title, path = "C:\\xLights"):
-        wx.Dialog.__init__(self, parent, id, title, size=(500,300))
+    def __init__(self, parent, id, title, defaultDir = "C:\\xLights", tempDir = "C:\\xLights"):
+        wx.Dialog.__init__(self, parent, id, title, size=(500,150))
+
+        self.defaultDir = defaultDir
+        self.tempDir = tempDir
 
         vbox = wx.BoxSizer(wx.VERTICAL)
-        hbox = wx.BoxSizer(wx.HORIZONTAL)
-        lbXDir = wx.StaticText(self,11,"xLights Directory")
-        hbox.Add(lbXDir, 1, wx.ALIGN_CENTER|wx.TOP, 45)
-        tcDir = wx.TextCtrl(self, -1, path, size=(10,20))
-        hbox.Add(tcDir, 1, wx.ALIGN_CENTER|wx.TOP, 45)
-        bmp = wx.ArtProvider.GetBitmap(wx.ART_FOLDER, wx.ART_OTHER, (16,16))
-        btDir = wx.BitmapButton(self,-1,bmp, size=(20,20))
-        hbox.Add(btDir,1,wx.ALIGN_CENTER,wx.TOP,45)
+        fgs = wx.FlexGridSizer(2,3,1,1)
 
-        self.SetSizer(hbox)
+        lbXDir = wx.StaticText(self,11,"xLights Directory", size=(100,30),style=wx.TEXT_ALIGNMENT_CENTER)
+        fgs.Add(lbXDir,0, wx.ALL, 3)
+        self.tcDir = wx.TextCtrl(self, -1, self.defaultDir,  size=(340,30))
+        self.tcDir.SetEditable(False)
+        fgs.Add(self.tcDir, 0, wx.ALL, 3)
+        bmp = wx.ArtProvider.GetBitmap(wx.ART_FOLDER, wx.ART_OTHER, (16,16))
+        btDir = wx.BitmapButton(self,-1,bmp, size=(30,30))
+        fgs.Add(btDir,0,wx.ALL,3)
+
+        lbTempDir = wx.StaticText(self,11,"Temp Directory", size=(100,30),style=wx.TEXT_ALIGNMENT_CENTER)
+        fgs.Add(lbTempDir, 0, wx.ALL, 3)
+        self.tcTempDir =  wx.TextCtrl(self, -1, self.tempDir,  size=(340,30))
+        self.tcTempDir.SetEditable(False)
+        fgs.Add(self.tcTempDir, 0, wx.ALL, 3)
+        btTempDir = wx.BitmapButton(self,-1,bmp, size=(30,30))
+        fgs.Add(btTempDir,0,wx.ALL,3)
+
+        vbox.Add(fgs)
+        buttonGrid = wx.GridSizer(1,2,10,10)
+        btOk = wx.Button(self, wx.ID_OK, )
+        btCancel = wx.Button(self, wx.ID_CANCEL, )
+        buttonGrid.Add(btOk,0, wx.RIGHT, 3)
+        buttonGrid.Add(btCancel,0, wx.LEFT, 3)
+        vbox.Add(buttonGrid, flag=wx.CENTER)
+
+        self.Bind(wx.EVT_BUTTON, self.getXlightDir, btDir )
+        self.Bind(wx.EVT_BUTTON, self.getTempDir, btTempDir )
+
+        self.SetSizer(vbox)
+
+    def getXlightDir(self, event):
+        dial = wx.DirDialog(self,"Select xLights Directory",self.defaultDir)
+        if dial.ShowModal() == wx.ID_OK:
+            self.defaultDir = dial.GetPath()
+            self.tcDir.SetValue(self.defaultDir)
+        dial.Destroy()
+
+    def getTempDir(self, event):
+        dial = wx.DirDialog(self,"Select xLights Directory",self.tempDir)
+        if dial.ShowModal() == wx.ID_OK:
+            self.tempDir = dial.GetPath()
+            self.tcTempDir.SetValue(self.tempDir)
+        dial.Destroy()
 
 
 ################################################################################
@@ -529,7 +608,8 @@ def seqWorker(**kwargs):
 
     xSeq = Sequence(procInfo[LightingElf.SEQUENCE_FILE],
                     procInfo[LightingElf.PROC_XNET],
-                    execDir=procInfo[LightingElf.EXEC_DIR])
+                    execDir=procInfo[LightingElf.EXEC_DIR],
+                    tempDir=procInfo[LightingElf.SEQUENCE_TEMPDIR])
 
     procInfo[LightingElf.PROC_STATQ].put('Extracting')
     if xSeq.extractSequence() == 1:
@@ -563,7 +643,7 @@ if __name__ == "__main__":
     app = wx.App(filename='log.txt')
 
     wx.InitAllImageHandlers()
-    frame_1 = LightingElf(None, -1, title="Lighting Elf", size=(800,300))
+    frame_1 = LightingElf(None, -1, title="Lighting Elf", size=(600,400))
     app.SetTopWindow(frame_1)
 
     frame_1.Show()
