@@ -432,6 +432,8 @@ class LightingElf(wx.Frame):
          'Confirm clear', wx.OK | wx.ICON_EXCLAMATION | wx.CANCEL)
         status = dial.ShowModal() == wx.ID_OK
 
+        self.timer.Stop()
+
         if status:
 
             seqgrid = self.sequencesPanel.GetSizer()
