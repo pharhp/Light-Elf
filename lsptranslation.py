@@ -554,6 +554,21 @@ class Sequence():
                     condData[j] = self.data[ch*self.numPeriods + period] if ch<self.networks.maxChan else 0
 
                 FH.write(condData)
+
+#-------------------------------------------------------------------------------
+    def getConductorFormat(self):
+        chanCount = self.networks.getMaxChannels()
+        if chanCount != 16384:
+           return False
+        condData = bytearray(chanCount * self.numPeriods)
+
+        for period in range(self.numPeriods):
+            for i in range(4096):
+                for j in range(4):
+                    ch = j * 4096 + i
+                    condData[period*16384 + i*4 + j] = self.data[ch*self.numPeriods + period] if ch<self.networks.maxChan else 0
+
+        return condData
 ################################################################################
 if __name__ == '__main__':
 

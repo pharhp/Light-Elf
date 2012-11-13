@@ -29,7 +29,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
-Version = "0.0.7 Beta"
+Version = "0.0.8 Beta"
 
 
 #-------------------------------------------------------------------------------
@@ -358,6 +358,11 @@ class LightingElf(wx.Frame):
                 if self.netInfo.maxChan == 16384:
                    fname = re.sub(r'xseq$','seq',fname)
                    seq[self.SEQUENCE_OBJ].outputConductor(fname)
+##                   fname += '2'
+##                   FH = open(fname,'wb')
+##                   FH.write(seq[self.SEQUENCE_OBJ].getConductorFormat())
+##                   FH.close()
+
 
         else:
             #Export single combines sequence. get Audio file first
@@ -396,6 +401,15 @@ class LightingElf(wx.Frame):
                 for chan in range(self.netInfo.maxChan+1):
                     for seq in self.sequences:
                         FH.write(seq[self.SEQUENCE_OBJ].getChannelEvents(chan))
+                FH.close()
+
+                if self.netInfo.getMaxChannels == 16384:
+                   exportFile = re.sub('xseq$','seq', exportFile)
+                   FH = open(exportFile, 'wb')
+                   for seq in self.sequences:
+                       seq[self.SEQUENCE_OBJ].outputConductor(fname)
+                       FH.write(seq[self.SEQUENCE_OBJ].getConductorFormat())
+
         pass
 
 #-------------------------------------------------------------------------------
