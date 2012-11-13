@@ -114,9 +114,10 @@ def normalizeIntensity(intensity):
 def main():
     netInfo = xNetwork()
 
-    seq = Sequence('C:\\xlights2012\\scuba\\Frank R short sequence.msq', netInfo,
+    seq = Sequence('C:\\xlights\\temp\\Boundary Test - Fades', netInfo,
                    execDir=os.path.dirname(os.path.realpath(__file__)))
-    seq.extractSequence()
+##    seq.extractSequence()
+    seq.logFile = open('C:\\xlights\\temp\\Boundary Test - Fades.log','w')
     seq.procSequence()
 
     for (cur,total) in seq.convertLSPSequenceWStatus():
@@ -467,7 +468,7 @@ class Sequence():
 
             endPer = periodNum(int(float(timeIntervals[idx+1].get('pos'))))
 
-            if effect == 2:
+            if effect == 2 or effect == 1:
                 colorStart = getColorVals(int(timeIntervals[idx].get('bst')),
                                                                           inpct)
                 colorEnd   = getColorVals(int(timeIntervals[idx].get('ben')),
