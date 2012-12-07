@@ -29,7 +29,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
-Version = "0.0.8 Beta"
+Version = "0.0.9 Beta"
 
 
 #-------------------------------------------------------------------------------
@@ -403,12 +403,19 @@ class LightingElf(wx.Frame):
                         FH.write(seq[self.SEQUENCE_OBJ].getChannelEvents(chan))
                 FH.close()
 
-                if self.netInfo.getMaxChannels == 16384:
-                   exportFile = re.sub('xseq$','seq', exportFile)
+                if self.netInfo.getMaxChannels() == 16384:
+                   exportFile = re.sub(r'xseq$','seq', exportFile, re.I)
                    FH = open(exportFile, 'wb')
                    for seq in self.sequences:
-                       seq[self.SEQUENCE_OBJ].outputConductor(fname)
-                       FH.write(seq[self.SEQUENCE_OBJ].getConductorFormat())
+##                       seq[self.SEQUENCE_OBJ].outputConductor(fname)
+                       condData = seq[self.SEQUENCE_OBJ].getConductorFormat()
+                       FH.write(condData)
+                FH.close()
+
+                dial = wx.MessageDialog(None, 'Sequences exported.',
+                'Done', wx.OK | wx.ICON_INFORMATION)
+                status = dial.ShowModal()
+                dial.Destroy()
 
         pass
 

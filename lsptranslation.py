@@ -114,7 +114,7 @@ def normalizeIntensity(intensity):
 def main():
     netInfo = xNetwork()
 
-    seq = Sequence('C:\\xlights\\temp\\Boundary Test - Fades', netInfo,
+    seq = Sequence('C:\\xlights\\temp\\section 2 uni 1-2 - Copy', netInfo,
                    execDir=os.path.dirname(os.path.realpath(__file__)))
 ##    seq.extractSequence()
     seq.logFile = open('C:\\xlights\\temp\\Boundary Test - Fades.log','w')
@@ -165,6 +165,7 @@ class Sequence():
     def log(self, string):
         string += "\n"
         self.logFile.write(string)
+##        print string
 
 #-------------------------------------------------------------------------------
     def extractSequence(self):
@@ -294,36 +295,36 @@ class Sequence():
                 #if gchan != -1 or bchan != -1:
                 #   print "Warning! expected a non RGB channel but"\
                 #          " green and blue have values."
-                if self.chanDict.has_key(rchan):
-                    self.log( "Warning! Channel %d has already been processed."
-                          " Duplicate Channel?" %(rchan) )
-                    string = "existing: "
-                    for val in self.chanDict[rchan]:
-                        string += str(val)
-##                    self.log( "existing: " + self.chanDict[rchan])
-                    self.log(string)
-                    self.log( "current: normal ConID %d ConZone %d, ConName %s"%( conID,\
-                                           conZone, conName))
-                self.chanDict[rchan] = ["normal", conID, conZone, conName]
+##                if self.chanDict.has_key(rchan):
+##                    self.log( "Warning! Channel %d has already been processed."
+##                          " Duplicate Channel?" %(rchan) )
+##                    string = "existing: "
+##                    for val in self.chanDict[rchan]:
+##                        string += str(val)
+####                    self.log( "existing: " + self.chanDict[rchan])
+##                    self.log(string)
+##                    self.log( "current: normal ConID %d ConZone %d, ConName %s"%( conID,\
+##                                           conZone, conName))
+##                self.chanDict[rchan] = ["normal", conID, conZone, conName]
                 self.procIntervals( rchan, intervals)
             else:
                 rgbChans['RED'] = rchan
                 rgbChans['GREEN'] = gchan
                 rgbChans['BLUE'] = bchan
-                for color in rgbChans.keys():
-                    chan = rgbChans[color]
-                    if chan in self.chanDict.keys():
-                        self.log( "Warning! Channel %d has already been processed."
-                              " Duplicate Channel?" %(rchan))
-                        string = "Existing: "
-                        for val in self.chanDict[chan]:
-                            string += str(val)
-
-                        self.log( string)
-                        self.log( "current: RGB %s %d %d %s"%(color, conID,
-                                           conZone, conName ))
-                    self.chanDict[chan] = ["RGB %s"%(color), conID,\
-                                           conZone, conName]
+##                for color in rgbChans.keys():
+##                    chan = rgbChans[color]
+##                    if chan in self.chanDict.keys():
+##                        self.log( "Warning! Channel %d has already been processed."
+##                              " Duplicate Channel?" %(rchan))
+##                        string = "Existing: "
+##                        for val in self.chanDict[chan]:
+##                            string += str(val)
+##
+##                        self.log( string)
+##                        self.log( "current: RGB %s %d %d %s"%(color, conID,
+##                                           conZone, conName ))
+##                    self.chanDict[chan] = ["RGB %s"%(color), conID,\
+##                                           conZone, conName]
                 self.procRGBIntervals( rgbChans, intervals)
 
 #-------------------------------------------------------------------------------
@@ -365,10 +366,10 @@ class Sequence():
             perDiff = endPer - startPer #number of ticks for effect
 
             #Diagnostic code
-            if chan in self.chanEffectCounts.keys():
-                self.chanEffectCounts[chan] +=1
-            else:
-                self.chanEffectCounts[chan] = 1
+##            if chan in self.chanEffectCounts.keys():
+##                self.chanEffectCounts[chan] +=1
+##            else:
+##                self.chanEffectCounts[chan] = 1
             self.effectCount += 1
             self.procEffect(chan, effect, startPer, perDiff, \
                             startIntensity, endIntensity)
@@ -500,10 +501,10 @@ class Sequence():
                     #assert(rgbChans[color])
                     chan = rgbChans[color]
                     #Diagnostic code
-                    if chan in self.chanEffectCounts.keys():
-                        self.chanEffectCounts[chan] +=1
-                    else:
-                        self.chanEffectCounts[chan] = 1
+##                    if chan in self.chanEffectCounts.keys():
+##                        self.chanEffectCounts[chan] +=1
+##                    else:
+##                        self.chanEffectCounts[chan] = 1
                     self.effectCount += 1
                     val = (int(i*rgbDel[color])+colorStart[color]) \
                                                    * (shimmerstate*twinklestate)
