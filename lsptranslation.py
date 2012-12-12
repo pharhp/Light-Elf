@@ -469,14 +469,21 @@ class Sequence():
 
             endPer = periodNum(int(float(timeIntervals[idx+1].get('pos'))))
 
-            if effect == 2 or effect == 1:
-                colorStart = getColorVals(int(timeIntervals[idx].get('bst')),
+            colorEnd = getColorVals(-1)
+            colorStart = getColorVals(-1)
+            try:
+                if effect == 2 or effect == 1:
+                    colorStart = getColorVals(int(timeIntervals[idx].get('bst')),
                                                                           inpct)
-                colorEnd   = getColorVals(int(timeIntervals[idx].get('ben')),
+                    colorEnd   = getColorVals(int(timeIntervals[idx].get('ben')),
                                                                          outpct)
-            else:
-                colorStart = getColorVals(int(timeIntervals[idx].get('bst')))
-                colorEnd   = getColorVals(int(timeIntervals[idx].get('ben')))
+                else:
+                    colorStart = getColorVals(int(timeIntervals[idx].get('bst')))
+                    colorEnd   = getColorVals(int(timeIntervals[idx].get('ben')))
+
+            except:
+                self.log(timeIntervals[idx].tostring())
+
             perDiff = endPer - startPer #number of ticks for effect
 
             twinklestate = shimmerstate = 1
