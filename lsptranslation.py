@@ -41,6 +41,14 @@ XLIGHTS_INTERVAL = 50
 LSP_MS_PERIOD = 88.2
 MAX_INTENSITY = 100
 
+FPP_MINOR_V = 0
+FPP_MAJOR_V = 1
+FPP_DATA_OFFSET =28
+FPP_HDR_LEN = 28
+FPP_INTERVAL = XLIGHTS_INTERVAL
+FPP_GAMMA = 1
+FPP_COLOR_ENCODE = 2
+
 ##Controller Protocol
 protoMap = {
          0:'LOR',
@@ -52,7 +60,6 @@ protoMap = {
          6:'e1.31',
          7:'Pixelnet',
 }
-
 
 
 ################################################################################
@@ -531,20 +538,66 @@ class Sequence():
         return chanEvents
 
 #-------------------------------------------------------------------------------
-    def outputxLights(self,outfile):
-        print("Generating xseq")
-        FH = open(outfile,'wb')
-        FH.write(b'xLights  1 %8d %8d'%(self.networks.maxChan,\
-                                         self.numPeriods))
+    def outputxLightsFileHDR(self, FH, nPer, sFile):
+
+        FH.write(b'xLights  1 %8d %8d'%(self.networks.maxChan, nPer))
         FH.write(b'\x00\x00\x00\x00')
-        FH.write(b'%s'%(self.songFile))
+        FH.write(b'%s'%(sFile))
 
         # pad out to 512 bytes
         FH.write(b'\x00'*(512 - int(len(self.songFile)) -32))
-
+#-------------------------------------------------------------------------------
+    def outputxLights(self,outfile):
+        print("Generating xseq")
+        FH = open(outfile,'wb')
+        self.outputxLightsFileHDR(FH, self.numPeriods, self.songFile)
         FH.write(self.data)
         FH.close()
+#-------------------------------------------------------------------------------
+    def outputFalconHDR(self, FH, nPer):
+        chanCount = self.networks.getMaxChannels()
+        stepSize = chanCount +(chanCount%4)
+        stepData = bytearray(stepSize)
+        periods = self.numPeriods
+        buff = bytearray(FPP_DATA_OFFSET)
 
+        buff[0:3]=b'FSEQ'
+        buff[4:5]=(FPP_DATA_OFFSET%256, FPP_DATA_OFFSET/256)
+        buff[6]=FPP_MINOR_V
+        buff[7]=FPP_MAJOR_V
+        buff[8:9]=(FPP_HDR_LEN%256,FPP_HDR_LEN/256)
+        buff[10:13] = (stepSize & 0xFF, stepSize > 8 & 0xFF, stepSize > 16 & 0xFF, stepSize > 24 & 0xFF)
+        buff[14:17] =(nPer & 0xFF, nPer > 8 & 0xFF, nPer > 16 & 0xFF, nPer > 24 & 0xFF)
+        buff[18:19]=(FPP_INTERVAL%256,FPP_INTERVAL/256)
+        buff[20:21]=(0,0)
+        buff[22:23]=(0,0)
+        buff[24]=FPP_GAMMA&0xff
+        buff[25]=FPP_COLOR_ENCODE & 0xff
+        buff[26:27]=(0,0)
+        FH.write(buff)
+
+#-------------------------------------------------------------------------------
+    def outputFalconPlayer(self,outfile):
+
+        print("Generating Falcon File")
+        chanCount = self.networks.getMaxChannels()
+        stepSize = chanCount +(chanCount%4)
+        FH = open(outfile,'wb')
+        self.outputFalconHDR(FH, self.numPeriods)
+        self.writeFalconChanData(FH)
+
+#-------------------------------------------------------------------------------
+    def writeFalconChanData(self, FH):
+        chanCount = self.networks.getMaxChannels()
+        stepSize = chanCount +(chanCount%4)
+        stepData = bytearray(stepSize)
+
+        for periodNum in range(self.numPeriods):
+            for ch in range(stepSize):
+                stepData[ch]=self.data[chanCount*self.numPeriods + periodNum] if chanCount<chanCount else 0
+
+            FH.write(stepData)
+#
 #-------------------------------------------------------------------------------
     def outputConductor(self, outfile):
         condData = bytearray(4)
@@ -559,8 +612,7 @@ class Sequence():
             for i in range(4096):
                 for j in range(4):
                     ch = j * 4096 + i
-                    condData[j] = self.data[ch*self.numPeriods + period] if ch<self.networks.maxChan else 0
-
+                    condData[j] = self.data[ch*self.numPeriods + period] if ch<chanCount else 0
                 FH.write(condData)
 
 #-------------------------------------------------------------------------------

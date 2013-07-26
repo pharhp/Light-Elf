@@ -343,30 +343,41 @@ class LightingElf(wx.Frame):
         self.Layout()
 
 #-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
     def exportSequence(self, event):
+
         if self.activeProc != 0:
             dial = wx.MessageDialog(None, 'Sequences still being processed.',
                 'Not Ready', wx.OK | wx.ICON_ERROR )
             status = dial.ShowModal()
             dial.Destroy()
-        elif self.individualSeq == True:
+            return
+
+        formatDialog = ExportDialogBox(self,-1,"Format Selection")
+        status = formatDialog.ShowModal()
+        if status != wx.ID_OK:
+            formatDialog.Destroy()
+            return
+
+        if self.individualSeq == True:
             #Export each sequence individually
             for seq in self.sequences:
                 fname = seq[self.PROC_INFO][self.SEQUENCE_FILE]
-                fname = re.sub(r'msq$','xseq',fname)
-                seq[self.SEQUENCE_OBJ].outputxLights(fname)
-                if self.netInfo.maxChan == 16384:
-                   fname = re.sub(r'xseq$','seq',fname)
-                   seq[self.SEQUENCE_OBJ].outputConductor(fname)
-##                   fname += '2'
-##                   FH = open(fname,'wb')
-##                   FH.write(seq[self.SEQUENCE_OBJ].getConductorFormat())
-##                   FH.close()
-
+                if formatDialog.chbXligthsFormat.IsChecked():
+                    xfname = re.sub(r'msq$','xseq',fname)
+                    seq[self.SEQUENCE_OBJ].outputxLights(xfname)
+                if formatDialog.chbConductorFormat.IsChecked():
+                    if self.netInfo.maxChan == 16384:
+                       cfname = re.sub(r'msq$','seq',fname)
+                       seq[self.SEQUENCE_OBJ].outputConductor(cfname)
+                if formatDialog.chbFalconFormat.IsChecked():
+                    ffname = re.sub(r'fseq$','seq',fname)
+                    seq[self.SEQUENCE_OBJ].outputFalconPlayer(ffname)
 
         else:
             #Export single combines sequence. get Audio file first
-            if not self.getAudioFileFromUser():
+            if formatDialog.chbXligthsFormat.IsChecked() and not self.getAudioFileFromUser():
                 dial = wx.MessageDialog(None, 'No Audio File Selected',
                 'Error', wx.OK | wx.ICON_ERROR )
                 status = dial.ShowModal()
@@ -387,37 +398,63 @@ class LightingElf(wx.Frame):
                     dial.Destroy()
                     dlg.Destroy()
                     return
-                #get the total number of periods we are goign to export
+
+
+                #get the total number of periods we are going to export
                 numPeriods = 0
                 for seq in self.sequences:
                     numPeriods += seq[self.SEQUENCE_OBJ].numPeriods
-                #Open file and output header
-                FH = open(exportFile, 'wb')
-                FH.write(b'xLights  1 %8d %8d'%(self.netInfo.maxChan, numPeriods))
-                FH.write(b'\x00\x00\x00\x00')
-                FH.write(b'%s'%self.audioFile)
-                #Pad out to 512 bytes
-                FH.write(b'\x00'*(512 - int(len(self.audioFile)) -32))
-                for chan in range(self.netInfo.maxChan+1):
-                    for seq in self.sequences:
-                        FH.write(seq[self.SEQUENCE_OBJ].getChannelEvents(chan))
-                FH.close()
 
-                if self.netInfo.getMaxChannels() == 16384:
-                   exportFile = re.sub(r'xseq$','seq', exportFile, re.I)
-                   FH = open(exportFile, 'wb')
-                   for seq in self.sequences:
-##                       seq[self.SEQUENCE_OBJ].outputConductor(fname)
-                       condData = seq[self.SEQUENCE_OBJ].getConductorFormat()
-                       FH.write(condData)
-                FH.close()
+                if formatDialog.chbXligthsFormat.IsChecked():
+                    xfname = re.sub(r'msq$','xseq',exportFile)
+                if formatDialog.chbConductorFormat.IsChecked():
+                    if self.netInfo.maxChan == 16384:
+                       cfname = re.sub(r'msq$','seq',exportFile)
+                    else:
+                        cfname = 0
+                if formatDialog.chbFalconFormat.IsChecked():
+                    ffname = re.sub(r'xseq$','fseq',exportFile)
+
+                if formatDialog.chbXligthsFormat.IsChecked():
+                    #Output xLights file
+
+                    FH = open(xfname, 'wb')
+
+                    self.sequences[0][self.SEQUENCE_OBJ].outputxLightsFileHDR(FH, numPeriods, self.audioFile)
+
+                    for chan in range(self.netInfo.maxChan+1):
+                        for seq in self.sequences:
+                            FH.write(seq[self.SEQUENCE_OBJ].getChannelEvents(chan))
+                    FH.close()
+
+                if formatDialog.chbConductorFormat.IsChecked():
+                    if cfname == 0:
+                        dial = wx.MessageDialog(None, 'Can only create conductor file with 16384 channels',
+                        'Error', wx.OK | wx.ICON_INFORMATION)
+                        status = dial.ShowModal()
+                        dial.Destroy()
+                    else:
+                        #output conductor file
+                        FH = open(cfname, 'wb')
+                        for seq in self.sequences:
+                            condData = seq[self.SEQUENCE_OBJ].getConductorFormat()
+                            FH.write(condData)
+                        FH.close()
+
+                if formatDialog.chbFalconFormat.IsChecked():
+                    #output Falcon file
+                    FH = open(ffname, 'wb')
+                    self.sequences[0][self.SEQUENCE_OBJ].outputFalconHDR(FH, numPeriods)
+                    for seq in self.sequences:
+                        seq[self.SEQUENCE_OBJ].writeFalconChanData(FH)
+
 
                 dial = wx.MessageDialog(None, 'Sequences exported.',
                 'Done', wx.OK | wx.ICON_INFORMATION)
                 status = dial.ShowModal()
                 dial.Destroy()
 
-        pass
+        formatDialog.Destroy()
 
 #-------------------------------------------------------------------------------
     def getAudioFileFromUser(self):
@@ -617,7 +654,32 @@ class settingsDialog(wx.Dialog):
             self.tcTempDir.SetValue(self.tempDir)
         dial.Destroy()
 
+class ExportDialogBox(wx.Dialog):
+    def __init__(self, parent, id, title):
+        wx.Dialog.__init__(self, parent, id, title, size=(300,200))
+        vbox = wx.BoxSizer(wx.VERTICAL)
+        fgs = wx.FlexGridSizer(3,1,1,1)
 
+        self.chbConductorFormat = wx.CheckBox(self,2001,"Conductor Format", size=(100,30))
+        fgs.Add(self.chbConductorFormat, 0, wx.ALL, 3)
+
+
+
+        self.chbFalconFormat = wx.CheckBox(self,2002,"Falcon Format", size=(100,30))
+        fgs.Add(self.chbFalconFormat, 0, wx.ALL, 3)
+
+        self.chbXligthsFormat = wx.CheckBox(self,2003,"xLights Format", size=(100,30))
+        fgs.Add(self.chbXligthsFormat, 0, wx.ALL, 3)
+
+        vbox.Add(fgs)
+        buttonGrid = wx.GridSizer(1,2,10,10)
+        btOk = wx.Button(self, wx.ID_OK, )
+        btCancel = wx.Button(self, wx.ID_CANCEL, )
+        buttonGrid.Add(btOk,0, wx.RIGHT, 3)
+        buttonGrid.Add(btCancel,0, wx.LEFT, 3)
+        vbox.Add(buttonGrid, flag=wx.CENTER)
+
+        self.SetSizer(vbox)
 ################################################################################
 #-------------------------------------------------------------------------------
 # function to handle the sub processes that do translations
