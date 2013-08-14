@@ -5,7 +5,7 @@
 # Author:      frank_reichstein
 #
 # Created:     23/08/2012
-# Copyright:   (c) frank_reichstein 2012
+# Copyright:   (c) frank_reichstein 2012-13
 # Licence:
 License = \
 """
@@ -29,7 +29,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
-Version = "0.0.10 Beta"
+Version = "0.0.11 Beta"
 
 
 #-------------------------------------------------------------------------------
@@ -372,7 +372,7 @@ class LightingElf(wx.Frame):
                        cfname = re.sub(r'msq$','seq',fname)
                        seq[self.SEQUENCE_OBJ].outputConductor(cfname)
                 if formatDialog.chbFalconFormat.IsChecked():
-                    ffname = re.sub(r'fseq$','seq',fname)
+                    ffname = re.sub(r'msq$','fseq',fname)
                     seq[self.SEQUENCE_OBJ].outputFalconPlayer(ffname)
 
         else:
@@ -413,7 +413,7 @@ class LightingElf(wx.Frame):
                     else:
                         cfname = 0
                 if formatDialog.chbFalconFormat.IsChecked():
-                    ffname = re.sub(r'xseq$','fseq',exportFile)
+                    ffname = re.sub(r'msq$','fseq',exportFile)
 
                 if formatDialog.chbXligthsFormat.IsChecked():
                     #Output xLights file
