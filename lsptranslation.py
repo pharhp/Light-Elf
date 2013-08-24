@@ -298,7 +298,7 @@ class Sequence():
                 gchan += self.networks.getNetStartChan(conZone)
                 bchan += self.networks.getNetStartChan(conZone)
 
-            if gchan == bchan:
+            if gchan == bchan or conType == 0:
                 #if gchan != -1 or bchan != -1:
                 #   print "Warning! expected a non RGB channel but"\
                 #          " green and blue have values."
@@ -489,6 +489,7 @@ class Sequence():
                     colorEnd   = getColorVals(int(timeIntervals[idx].get('ben')))
 
             except:
+                self.log("%d"%(idx))
                 self.log(timeIntervals[idx].tostring())
 
             perDiff = endPer - startPer #number of ticks for effect
