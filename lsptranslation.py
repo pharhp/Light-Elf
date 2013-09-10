@@ -595,7 +595,11 @@ class Sequence():
 
         for periodNum in range(self.numPeriods):
             for ch in range(stepSize):
-                stepData[ch]=self.data[chanCount*self.numPeriods + periodNum] if chanCount<chanCount else 0
+                if ch < chanCount:
+                   stepData[ch]=self.data[ch*self.numPeriods + periodNum]
+
+                else:
+                   stepData[ch]=0
 
             FH.write(stepData)
 #
