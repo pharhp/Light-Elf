@@ -38,7 +38,7 @@ import subprocess
 import re
 
 XLIGHTS_INTERVAL = 50
-LSP_MS_PERIOD = 96
+LSP_MS_PERIOD = 88.2 
 MAX_INTENSITY = 100
 
 FPP_MINOR_V = 0
