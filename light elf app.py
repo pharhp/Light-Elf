@@ -9,7 +9,7 @@
 # Licence:
 License = \
 """
-Copyright (C) 2011-2012 by Frank Reichstein
+Copyright (C) 2011-2013 by Frank Reichstein
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +29,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
-Version = "0.0.11 Beta"
+Version = "1.0.0"
 
 
 #-------------------------------------------------------------------------------
@@ -586,7 +586,7 @@ class AboutBox(wx.Dialog):
         info = wx.AboutDialogInfo()
         info.Name = "Light Elf"
         info.Version = Version
-        info.Copyright = "(C) 2012 Frank Reichstein"
+        info.Copyright = "(C) 2012-2013 Frank Reichstein"
         info.Description = \
 """This program converts Light Show Pro 2.5 sequences
 directly to xLights format.  In addition it can combine sequences
@@ -716,6 +716,7 @@ def seqWorker(**kwargs):
         xSeq.logStats()
         procInfo[LightingElf.PROC_STATQ].put_nowait('Done')
         procInfo[LightingElf.PROC_OUTQ].put_nowait(xSeq)
+
     except:
         pass
 

@@ -9,7 +9,7 @@
 # Licence:
 
 """
-Copyright (C) 2011 by Frank Reichstein
+Copyright (C) 2011-2013 by Frank Reichstein
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -31,14 +31,16 @@ THE SOFTWARE.
 """
 #-------------------------------------------------------------------------------
 #!/usr/bin/env python
-from xml.etree.ElementTree import ElementTree
+import xml.etree.cElementTree as ElementTree
+###from xml.etree.ElementTree import
+###import gc
 import os
 import random
 import subprocess
 import re
 
 XLIGHTS_INTERVAL = 50
-LSP_MS_PERIOD = 88.2 
+LSP_MS_PERIOD = 88.2
 MAX_INTENSITY = 100
 
 FPP_MINOR_V = 0
@@ -72,7 +74,7 @@ class xNetwork:
         self.ProcessNetworks()
 
     def ProcessNetworks(self):
-        tree=ElementTree(file=self.file)
+        tree=ElementTree.parse(self.file)
         root = tree.getroot()
         networks = self.networks
 
@@ -121,10 +123,10 @@ def normalizeIntensity(intensity):
 def main():
     netInfo = xNetwork()
 
-    seq = Sequence('C:\\xlights\\temp\\section 2 uni 1-2 - Copy', netInfo,
+    seq = Sequence('C:\\temp\\scuba', netInfo,
                    execDir=os.path.dirname(os.path.realpath(__file__)))
 ##    seq.extractSequence()
-    seq.logFile = open('C:\\xlights\\temp\\Boundary Test - Fades.log','w')
+    seq.logFile = open('C:\\temp\\scuba.log','w')
     seq.procSequence()
 
     for (cur,total) in seq.convertLSPSequenceWStatus():
@@ -153,12 +155,13 @@ class Sequence():
         self.tempDir = tempDir
         self.execDir = execDir
         self.logLevel = 3
+        #gc.enable()
 
 #-------------------------------------------------------------------------------
     def procSequence(self):
         #start with a root directory. assume that we have a Sequnce file and a dir
         os.chdir(self.seqdir)
-        sTree = ElementTree(file='Sequence')
+        sTree = ElementTree.parse('Sequence')
         self.getMediaInfo(sTree)
         del sTree
 
@@ -220,9 +223,10 @@ class Sequence():
         count = 0
         for f in dircontents:
             self.log( "Starting controller file: " + f )
-            cTree=ElementTree(file=f)
+            cTree=ElementTree.parse(f)
             self.procController(cTree)
             del cTree
+            #gc.collect()
             count += 1
             yield (count,totalFiles)
 
@@ -333,6 +337,19 @@ class Sequence():
 ##                    self.chanDict[chan] = ["RGB %s"%(color), conID,\
 ##                                           conZone, conName]
                 self.procRGBIntervals( rgbChans, intervals)
+        del conProtocol
+        del conType
+        del conName
+        del conZone
+        del conID
+        del chans
+        del root
+
+
+
+
+
+
 
 #-------------------------------------------------------------------------------
     def procIntervals(self, chan, intervals):
