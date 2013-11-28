@@ -29,7 +29,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
-Version = "1.0.0"
+Version = "1.0.1"
 
 
 #-------------------------------------------------------------------------------
@@ -409,11 +409,11 @@ class LightingElf(wx.Frame):
                     xfname = re.sub(r'msq$','xseq',exportFile)
                 if formatDialog.chbConductorFormat.IsChecked():
                     if self.netInfo.maxChan == 16384:
-                       cfname = re.sub(r'msq$','seq',exportFile)
+                       cfname = re.sub(r'xseq$','seq',exportFile)
                     else:
                         cfname = 0
                 if formatDialog.chbFalconFormat.IsChecked():
-                    ffname = re.sub(r'msq$','fseq',exportFile)
+                    ffname = re.sub(r'xseq$','fseq',exportFile)
 
                 if formatDialog.chbXligthsFormat.IsChecked():
                     #Output xLights file

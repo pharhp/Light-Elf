@@ -585,7 +585,7 @@ class Sequence():
         buff[7]=FPP_MAJOR_V
         buff[8:9]=(FPP_HDR_LEN%256,FPP_HDR_LEN/256)
         buff[10:13] = (stepSize & 0xFF, stepSize >> 8 & 0xFF, stepSize >> 16 & 0xFF, stepSize >> 24 & 0xFF)
-        buff[14:17] =(nPer & 0xFF, nPer > 8 & 0xFF, nPer > 16 & 0xFF, nPer > 24 & 0xFF)
+        buff[14:17] =(nPer & 0xFF, nPer >> 8 & 0xFF, nPer >> 16 & 0xFF, nPer >> 24 & 0xFF)
         buff[18:19]=(FPP_INTERVAL%256,FPP_INTERVAL/256)
         buff[20:21]=(0,0)
         buff[22:23]=(0,0)
@@ -609,7 +609,7 @@ class Sequence():
         chanCount = self.networks.getMaxChannels()
         stepSize = chanCount +(chanCount%4)
         stepData = bytearray(stepSize)
-        FH.seek(FPP_DATA_OFFSET)
+        #FH.seek(FPP_DATA_OFFSET)
 
         for periodNum in range(self.numPeriods):
             for ch in range(stepSize):
