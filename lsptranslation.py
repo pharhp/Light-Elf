@@ -563,7 +563,8 @@ class Sequence():
         FH.write(b'%s'%(sFile))
 
         # pad out to 512 bytes
-        FH.write(b'\x00'*(512 - int(len(self.songFile)) -32))
+        FH.write(b'\x00'*(512 - int(len(sFile)) -32))
+
 #-------------------------------------------------------------------------------
     def outputxLights(self,outfile):
         print("Generating xseq")
