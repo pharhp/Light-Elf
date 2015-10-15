@@ -109,7 +109,7 @@ def getColorVals(colorInt, pct=100):
     retval['BLUE'] = (colorInt&0x000000ff)
     if pct != 100:
        for key in retval.keys():
-           retval[key] = int(pct/100 * retval[key] )
+           retval[key] = int(retval[key] * pct/100)
     return retval
 
 def periodNum(lspPosVal):
@@ -238,8 +238,10 @@ class Sequence():
         length = int(root.find('Length').text)
 
         self.numPeriods = periodNum(length)
-        self.songFile = mmf.find('MediaFileName').text
-
+        if mmf:
+            self.songFile = mmf.find('MediaFileName').text
+        else:
+            self.songFile = "blank"
 #-------------------------------------------------------------------------------
     def isValidChans(self, rchan, gchan, bchan, conZone, conID):
         """validate that the channels in current processing time are valid
@@ -497,10 +499,13 @@ class Sequence():
             colorStart = getColorVals(-1)
             try:
                 if effect == 2 or effect == 1:
+                    print "foo"
                     colorStart = getColorVals(int(timeIntervals[idx].get('bst')),
                                                                           inpct)
                     colorEnd   = getColorVals(int(timeIntervals[idx].get('ben')),
                                                                          outpct)
+                   ## print "Color in %s, out %s: inpct %s: outpct: %s"%(colorStart['RED'], colorEnd['RED'], inpct, outpct)
+                   ## debug code for fade calculation
                 else:
                     colorStart = getColorVals(int(timeIntervals[idx].get('bst')))
                     colorEnd   = getColorVals(int(timeIntervals[idx].get('ben')))
